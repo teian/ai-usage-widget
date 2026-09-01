@@ -4,6 +4,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import "ProviderTheme.js" as ProviderTheme
+import "ProviderLimits.js" as ProviderLimits
 
 PlasmaExtras.Representation {
     id: view
@@ -14,6 +15,7 @@ PlasmaExtras.Representation {
     required property string errorText
     required property bool refreshing
     required property string lastUpdatedAt
+    required property var gaugeLimitPreferences
     property bool historyExpanded: false
     property bool usageDetailsExpanded: false
     signal refreshRequested()
@@ -147,8 +149,8 @@ PlasmaExtras.Representation {
                             onClicked: view.providerRequested(index)
                             contentItem: RowLayout {
                                 PlasmaComponents.Label {
-                                    readonly property var providerLimit: modelData.account.limits.length > 0
-                                        ? modelData.account.limits[0] : null
+                                    readonly property var providerLimit: ProviderLimits.selectedLimit(
+                                        modelData, view.gaugeLimitPreferences[modelData.provider.id] || 0)
                                     Layout.fillWidth: true
                                     text: providerLimit
                                         ? i18n("%1 · %2%", modelData.provider.name, Math.round(providerLimit.usedPercent))

@@ -20,6 +20,10 @@ PlasmoidItem {
     readonly property bool anyProviderEnabled: plasmoid.configuration.enableCodex || plasmoid.configuration.enableClaude
     readonly property string pendingProviderId: plasmoid.configuration.enableClaude && !plasmoid.configuration.enableCodex
                                                 ? "claude" : "codex"
+    readonly property var gaugeLimitPreferences: ({
+        codex: plasmoid.configuration.codexGaugeLimit,
+        claude: plasmoid.configuration.claudeGaugeLimit
+    })
 
     function compactNumber(value) {
         const number = Number(value || 0)
@@ -126,9 +130,7 @@ PlasmoidItem {
                     required property var modelData
                     required property int index
                     provider: modelData
-                    limitPreference: modelData.provider.id === "claude"
-                        ? plasmoid.configuration.claudeGaugeLimit
-                        : plasmoid.configuration.codexGaugeLimit
+                    limitPreference: root.gaugeLimitPreferences[modelData.provider.id] || 0
                     selected: index === root.selectedIndex
                     onActivated: {
                         root.selectedIndex = index
@@ -146,6 +148,7 @@ PlasmoidItem {
         errorText: root.errorText
         refreshing: root.refreshing
         lastUpdatedAt: root.lastUpdatedAt
+        gaugeLimitPreferences: root.gaugeLimitPreferences
         onRefreshRequested: root.refresh()
         onProviderRequested: (index) => root.selectedIndex = index
     }

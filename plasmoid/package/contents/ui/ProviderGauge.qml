@@ -2,6 +2,7 @@ import QtQuick
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import "ProviderTheme.js" as ProviderTheme
+import "ProviderLimits.js" as ProviderLimits
 
 Item {
     id: gauge
@@ -29,19 +30,7 @@ Item {
     }
 
     function selectedLimit() {
-        const limits = provider && provider.account && provider.account.limits ? provider.account.limits : []
-        if (limits.length === 0) return null
-        if (limitPreference === 2) {
-            const weekly = limits.find(limit => Number(limit.windowMinutes) === 10080)
-            if (weekly) return weekly
-        } else if (limitPreference === 1) {
-            const shortWindow = limits.find(limit => {
-                const minutes = Number(limit.windowMinutes)
-                return minutes > 0 && minutes < 10080
-            })
-            if (shortWindow) return shortWindow
-        }
-        return limits[0]
+        return ProviderLimits.selectedLimit(provider, limitPreference)
     }
 
     function resetLabel(value) {
