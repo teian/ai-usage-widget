@@ -11,6 +11,9 @@ Item {
     readonly property var primaryLimit: provider && provider.account.limits.length > 0 ? provider.account.limits[0] : null
     readonly property real percentage: primaryLimit ? Number(primaryLimit.usedPercent || 0) : -1
     readonly property color accentColor: provider && provider.provider.id === "claude" ? "#D97757" : "#10A37F"
+    readonly property color ringColor: percentage >= 90 ? Kirigami.Theme.negativeTextColor
+        : percentage >= 75 ? Kirigami.Theme.neutralTextColor
+        : accentColor
     signal activated()
 
     implicitWidth: gaugeSize
@@ -39,7 +42,7 @@ Item {
             context.stroke()
             if (gauge.percentage >= 0) {
                 context.beginPath()
-                context.strokeStyle = gauge.accentColor
+                context.strokeStyle = gauge.ringColor
                 context.arc(
                     center,
                     center,
@@ -54,7 +57,7 @@ Item {
         Connections {
             target: gauge
             function onPercentageChanged() { ring.requestPaint() }
-            function onAccentColorChanged() { ring.requestPaint() }
+            function onRingColorChanged() { ring.requestPaint() }
             function onSelectedChanged() { ring.requestPaint() }
         }
     }
@@ -64,6 +67,7 @@ Item {
         text: gauge.percentage >= 0 ? Math.round(gauge.percentage) + "%" : "—"
         font.pixelSize: Math.max(8, gauge.gaugeSize * 0.28)
         font.weight: Font.DemiBold
+        color: gauge.percentage >= 75 ? gauge.ringColor : Kirigami.Theme.textColor
     }
 
     MouseArea {

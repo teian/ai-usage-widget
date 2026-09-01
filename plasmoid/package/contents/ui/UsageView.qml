@@ -43,6 +43,12 @@ PlasmaExtras.Representation {
         return Qt.rgba(color.r, color.g, color.b, alpha)
     }
 
+    function limitColor(percent) {
+        if (percent >= 90) return Kirigami.Theme.negativeTextColor
+        if (percent >= 75) return Kirigami.Theme.neutralTextColor
+        return accentColor
+    }
+
     contentItem: PlasmaComponents.ScrollView {
         id: scrollView
         contentWidth: availableWidth
@@ -147,7 +153,11 @@ PlasmaExtras.Representation {
                                 Layout.fillWidth: true
                                 PlasmaComponents.Label { text: modelData.label; font.weight: Font.DemiBold }
                                 Item { Layout.fillWidth: true }
-                                PlasmaExtras.Heading { text: Math.round(modelData.usedPercent) + "%"; level: 3 }
+                                PlasmaExtras.Heading {
+                                    text: Math.round(modelData.usedPercent) + "%"
+                                    level: 3
+                                    color: view.limitColor(modelData.usedPercent)
+                                }
                             }
                             Rectangle {
                                 Layout.fillWidth: true
@@ -158,7 +168,7 @@ PlasmaExtras.Representation {
                                     width: parent.width * Math.min(100, Math.max(0, modelData.usedPercent)) / 100
                                     height: parent.height
                                     radius: height / 2
-                                    color: view.accentColor
+                                    color: view.limitColor(modelData.usedPercent)
                                 }
                             }
                             PlasmaComponents.Label {
