@@ -112,14 +112,15 @@ def scan_local_usage(claude_home: Path, history_days: int = 30) -> dict[str, Any
                     model = str(message.get("model") or event.get("model") or "claude")
                     session = str(event.get("sessionId") or path)
                     day = local_date(event.get("timestamp") or message.get("timestamp"), mtime)
+                    if day not in daily:
+                        continue
                     prompts += 1
                     sessions.add(session)
                     add_values(totals, values)
                     add_values(models[model], values)
-                    if day in daily:
-                        daily[day]["tokens"] += values["totalTokens"]
-                        daily[day]["prompts"] += 1
-                        daily[day]["sessions"].add(session)
+                    daily[day]["tokens"] += values["totalTokens"]
+                    daily[day]["prompts"] += 1
+                    daily[day]["sessions"].add(session)
         except OSError:
             continue
 

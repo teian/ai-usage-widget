@@ -73,7 +73,11 @@ class Tokens:
 
     def as_dict(self) -> dict[str, int]:
         return {
-            "inputTokens": self.input,
+            # input_tokens from Codex is a running total that already includes
+            # cached_input_tokens; report the fresh (non-cached) portion here so
+            # inputTokens/cachedInputTokens/cacheWriteInputTokens/outputTokens
+            # are additive, matching Claude's usage schema.
+            "inputTokens": max(0, self.input - self.cached_input),
             "cachedInputTokens": self.cached_input,
             "cacheWriteInputTokens": self.cache_write,
             "outputTokens": self.output,
@@ -147,14 +151,15 @@ def scan_local_usage(codex_home: Path, history_days: int = 30) -> dict[str, Any]
                     if delta.total == 0:
                         continue
                     day = local_date(event.get("timestamp"), mtime)
+                    if day not in daily:
+                        continue
                     prompts += 1
                     session_had_usage = True
                     add_tokens(totals, delta)
                     add_tokens(model_totals[model], delta)
-                    if day in daily:
-                        daily[day]["tokens"] += delta.total
-                        daily[day]["prompts"] += 1
-                        daily[day]["sessions"].add(str(path))
+                    daily[day]["tokens"] += delta.total
+                    daily[day]["prompts"] += 1
+                    daily[day]["sessions"].add(str(path))
         except OSError:
             continue
         if session_had_usage:

@@ -23,7 +23,7 @@ class LocalUsageTests(unittest.TestCase):
 
             usage = scan_local_usage(home)
 
-            self.assertEqual(usage["totals"]["inputTokens"], 250)
+            self.assertEqual(usage["totals"]["inputTokens"], 150)
             self.assertEqual(usage["totals"]["cachedInputTokens"], 100)
             self.assertEqual(usage["totals"]["outputTokens"], 30)
             self.assertEqual(usage["totals"]["totalTokens"], 280)
