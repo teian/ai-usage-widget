@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
+import "ProviderTheme.js" as ProviderTheme
 
 PlasmaExtras.Representation {
     id: view
@@ -21,7 +22,7 @@ PlasmaExtras.Representation {
     implicitWidth: Kirigami.Units.gridUnit * 23
     implicitHeight: Kirigami.Units.gridUnit * 32
 
-    readonly property color accentColor: record && record.provider.id === "claude" ? "#D97757" : "#10A37F"
+    readonly property color accentColor: ProviderTheme.accentColor(record ? record.provider.id : "")
     readonly property var today: record && record.localActivity.daily.length
         ? record.localActivity.daily[record.localActivity.daily.length - 1] : ({ tokens: 0 })
 

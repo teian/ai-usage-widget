@@ -1,5 +1,6 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
+import "ProviderTheme.js" as ProviderTheme
 
 Rectangle {
     id: icon
@@ -9,7 +10,7 @@ Rectangle {
     implicitWidth: iconSize
     implicitHeight: iconSize
     radius: width / 2
-    color: providerId === "claude" ? "#D97757" : "#10A37F"
+    color: ProviderTheme.accentColor(providerId)
 
     Image {
         anchors.centerIn: parent

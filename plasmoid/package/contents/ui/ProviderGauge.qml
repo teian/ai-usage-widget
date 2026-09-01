@@ -1,6 +1,7 @@
 import QtQuick
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import "ProviderTheme.js" as ProviderTheme
 
 Item {
     id: gauge
@@ -14,7 +15,7 @@ Item {
     readonly property var primaryLimit: selectedLimit()
     readonly property real percentage: primaryLimit ? Number(primaryLimit.usedPercent || 0) : -1
     readonly property string resetText: primaryLimit ? resetLabel(primaryLimit.resetsAt) : ""
-    readonly property color accentColor: provider && provider.provider.id === "claude" ? "#D97757" : "#10A37F"
+    readonly property color accentColor: ProviderTheme.accentColor(provider ? provider.provider.id : "")
     readonly property color ringColor: percentage >= 90 ? Kirigami.Theme.negativeTextColor
         : percentage >= 75 ? Kirigami.Theme.neutralTextColor
         : accentColor
