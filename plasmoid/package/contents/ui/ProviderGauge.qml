@@ -10,12 +10,12 @@ Item {
     required property var provider
     property bool selected: false
     property bool showLabel: true
+    property bool popupOpen: false
     property int gaugeSize: Kirigami.Units.iconSizes.medium
     // 0: first available, 1: short window, 2: weekly
     property int limitPreference: 0
     readonly property var primaryLimit: selectedLimit()
     readonly property real percentage: primaryLimit ? Number(primaryLimit.usedPercent || 0) : -1
-    readonly property string resetText: primaryLimit ? resetLabel(primaryLimit.resetsAt) : ""
     readonly property color accentColor: ProviderTheme.accentColor(provider ? provider.provider.id : "")
     readonly property color ringColor: percentage >= 90 ? Kirigami.Theme.negativeTextColor
         : percentage >= 75 ? Kirigami.Theme.neutralTextColor
@@ -31,15 +31,6 @@ Item {
 
     function selectedLimit() {
         return ProviderLimits.selectedLimit(provider, limitPreference)
-    }
-
-    function resetLabel(value) {
-        if (!value) return ""
-        const seconds = Math.max(0, (new Date(value).getTime() - Date.now()) / 1000)
-        if (seconds < 60) return i18n("resets soon")
-        if (seconds < 3600) return i18np("resets in %1 minute", "resets in %1 minutes", Math.ceil(seconds / 60))
-        if (seconds < 86400) return i18np("resets in %1 hour", "resets in %1 hours", Math.ceil(seconds / 3600))
-        return i18np("resets in %1 day", "resets in %1 days", Math.ceil(seconds / 86400))
     }
 
     Canvas {
@@ -106,14 +97,10 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         onClicked: gauge.activated()
-    }
 
-    PlasmaComponents.ToolTip {
-        visible: mouse.containsMouse
-        text: gauge.primaryLimit
-            ? (gauge.resetText
-                ? i18n("%1 · %2% used · %3", gauge.provider.provider.name, Math.round(gauge.percentage), gauge.resetText)
-                : i18n("%1 · %2% used", gauge.provider.provider.name, Math.round(gauge.percentage)))
+        PlasmaComponents.ToolTip.visible: containsMouse && !gauge.popupOpen
+        PlasmaComponents.ToolTip.text: gauge.primaryLimit
+            ? i18n("%1 · %2% used", gauge.provider.provider.name, Math.round(gauge.percentage))
             : i18n("%1: limits unavailable", gauge.provider.provider.name)
     }
 }

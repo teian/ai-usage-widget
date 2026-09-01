@@ -132,6 +132,7 @@ PlasmoidItem {
                     provider: modelData
                     limitPreference: root.gaugeLimitPreferences[modelData.provider.id] || 0
                     selected: index === root.selectedIndex
+                    popupOpen: root.expanded
                     onActivated: {
                         root.selectedIndex = index
                         root.expanded = true

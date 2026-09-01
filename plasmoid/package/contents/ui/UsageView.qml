@@ -305,10 +305,9 @@ PlasmaExtras.Representation {
                                     id: barMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                }
-                                PlasmaComponents.ToolTip {
-                                    visible: barMouse.containsMouse
-                                    text: i18n("%1 · %2 tokens",
+
+                                    PlasmaComponents.ToolTip.visible: containsMouse
+                                    PlasmaComponents.ToolTip.text: i18n("%1 · %2 tokens",
                                         Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd, MMM d"),
                                         view.compactNumber(modelData.tokens))
                                 }
