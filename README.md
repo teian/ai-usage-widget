@@ -7,16 +7,16 @@ deliberately isolated so others can be added without changing the widget.
 ## What the prototype shows
 
 - Codex subscription usage windows and reset times via `codex app-server`
-- Local input, cached-input, output, prompt, and session counts
-- Seven-day token activity
+- Claude Code subscription windows via its best-effort OAuth usage endpoint
+- Seven-day local token activity as a bar chart, with prompt and session counts
 - Token totals grouped by model
 - Account-level token activity when Codex makes it available
-- Claude Code subscription windows via its best-effort OAuth usage endpoint
-- Claude input, cache creation, cache reads, and output from local transcripts
 
 Local statistics are calculated from Codex session records under `CODEX_HOME`
-(normally `~/.codex`). They describe this machine, while limits and account
-activity come from Codex services.
+(normally `~/.codex`) and Claude Code transcripts under `CLAUDE_CONFIG_DIR`
+(normally `~/.claude`). They describe this machine, scoped to the same
+seven-day window as the activity chart, while limits and account activity
+come from each provider's service.
 
 ## Try the collector
 
