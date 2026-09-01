@@ -16,7 +16,6 @@ PlasmaExtras.Representation {
     required property bool refreshing
     required property string lastUpdatedAt
     required property var gaugeLimitPreferences
-    property bool usageDetailsExpanded: false
     signal refreshRequested()
     signal providerRequested(int index)
 
@@ -246,79 +245,18 @@ PlasmaExtras.Representation {
                 visible: !!view.record
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-                PlasmaComponents.ToolButton {
-                    text: i18n("Usage details")
-                    icon.name: view.usageDetailsExpanded ? "arrow-down" : "arrow-right"
-                    onClicked: view.usageDetailsExpanded = !view.usageDetailsExpanded
-                    Accessible.name: view.usageDetailsExpanded
-                        ? i18n("Collapse usage details") : i18n("Expand usage details")
-                }
-                Rectangle {
-                    visible: view.usageDetailsExpanded
+                RowLayout {
                     Layout.fillWidth: true
-                    implicitHeight: usageDetails.implicitHeight + Kirigami.Units.largeSpacing * 2
-                    radius: Kirigami.Units.cornerRadius
-                    color: Kirigami.Theme.alternateBackgroundColor
-                    ColumnLayout {
-                        id: usageDetails
-                        anchors.fill: parent
-                        anchors.margins: Kirigami.Units.largeSpacing
-                        spacing: Kirigami.Units.smallSpacing
-                        RowLayout {
-                            Layout.fillWidth: true
-                            PlasmaComponents.Label {
-                                Layout.fillWidth: true
-                                text: i18n("%1 prompts", view.compactNumber(view.record.localActivity.totals.prompts))
-                                color: Kirigami.Theme.disabledTextColor
-                            }
-                            PlasmaComponents.Label {
-                                Layout.fillWidth: true
-                                text: i18n("%1 sessions", view.compactNumber(view.record.localActivity.totals.sessions))
-                                horizontalAlignment: Text.AlignRight
-                                color: Kirigami.Theme.disabledTextColor
-                            }
-                        }
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: 1
-                            color: view.faded(Kirigami.Theme.textColor, 0.14)
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Repeater {
-                                model: [
-                                    { label: i18n("Input"), value: view.record.localActivity.totals.inputTokens },
-                                    { label: i18n("Read"), value: view.record.localActivity.totals.cachedInputTokens },
-                                    { label: i18n("Write"), value: view.record.localActivity.totals.cacheWriteInputTokens },
-                                    { label: i18n("Output"), value: view.record.localActivity.totals.outputTokens }
-                                ]
-                                delegate: ColumnLayout {
-                                    required property var modelData
-                                    Layout.fillWidth: true
-                                    spacing: 0
-                                    PlasmaComponents.Label {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        text: view.compactNumber(modelData.value)
-                                        font.weight: Font.DemiBold
-                                    }
-                                    PlasmaComponents.Label {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        text: modelData.label
-                                        color: Kirigami.Theme.disabledTextColor
-                                        font: Kirigami.Theme.smallFont
-                                    }
-                                }
-                            }
-                        }
+                    PlasmaExtras.Heading { Layout.fillWidth: true; text: i18n("Last 7 days"); level: 3 }
+                    PlasmaComponents.Label {
+                        visible: !!view.record
+                        text: i18n("%1 prompts · %2 sessions",
+                            view.compactNumber(view.record.localActivity.totals.prompts),
+                            view.compactNumber(view.record.localActivity.totals.sessions))
+                        color: Kirigami.Theme.disabledTextColor
+                        font: Kirigami.Theme.smallFont
                     }
                 }
-            }
-
-            ColumnLayout {
-                visible: !!view.record
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-                PlasmaExtras.Heading { text: i18n("Last 7 days"); level: 3 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Kirigami.Units.gridUnit * 4
@@ -371,7 +309,7 @@ PlasmaExtras.Representation {
             }
 
             ColumnLayout {
-                visible: view.record && view.record.localActivity.models.length > 0
+                visible: !!view.record
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
                 PlasmaExtras.Heading { text: i18n("Models"); level: 3 }
@@ -385,11 +323,6 @@ PlasmaExtras.Representation {
                         anchors.fill: parent
                         anchors.margins: Kirigami.Units.largeSpacing
                         spacing: Kirigami.Units.smallSpacing
-                        PlasmaComponents.Label {
-                            text: i18n("Recent local activity")
-                            color: Kirigami.Theme.disabledTextColor
-                            font: Kirigami.Theme.smallFont
-                        }
                         Repeater {
                             model: view.record ? view.record.localActivity.models : []
                             delegate: RowLayout {
