@@ -16,7 +16,6 @@ PlasmaExtras.Representation {
     required property bool refreshing
     required property string lastUpdatedAt
     required property var gaugeLimitPreferences
-    property bool historyExpanded: false
     property bool usageDetailsExpanded: false
     signal refreshRequested()
     signal providerRequested(int index)
@@ -27,6 +26,9 @@ PlasmaExtras.Representation {
     readonly property color accentColor: ProviderTheme.accentColor(record ? record.provider.id : "")
     readonly property var today: record && record.localActivity.daily.length
         ? record.localActivity.daily[record.localActivity.daily.length - 1] : ({ tokens: 0 })
+    readonly property real maxDailyTokens: record && record.localActivity.daily.length
+        ? Math.max(1, ...record.localActivity.daily.map(day => day.tokens))
+        : 1
 
     function compactNumber(value) {
         const number = Number(value || 0)
@@ -305,43 +307,53 @@ PlasmaExtras.Representation {
                 visible: !!view.record
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-                PlasmaComponents.ToolButton {
-                    text: i18n("Last 7 days")
-                    icon.name: view.historyExpanded ? "arrow-down" : "arrow-right"
-                    onClicked: view.historyExpanded = !view.historyExpanded
-                    Accessible.name: view.historyExpanded
-                        ? i18n("Collapse last 7 days") : i18n("Expand last 7 days")
-                }
-                Repeater {
-                    model: view.record && view.historyExpanded ? view.record.localActivity.daily : []
-                    delegate: RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        PlasmaComponents.Label {
-                            text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2
-                            color: modelData.date === view.today.date ? view.accentColor : Kirigami.Theme.textColor
-                            font.weight: modelData.date === view.today.date ? Font.DemiBold : Font.Normal
-                        }
-                        Rectangle {
+                PlasmaExtras.Heading { text: i18n("Last 7 days"); level: 3 }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+                    spacing: Kirigami.Units.smallSpacing
+                    Repeater {
+                        model: view.record ? view.record.localActivity.daily : []
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            readonly property bool isToday: modelData.date === view.today.date
                             Layout.fillWidth: true
-                            implicitHeight: 6
-                            radius: height / 2
-                            color: view.faded(Kirigami.Theme.textColor, 0.13)
-                            Rectangle {
-                                width: parent.width * modelData.tokens / Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
-                                height: parent.height
-                                radius: height / 2
-                                color: view.accentColor
-                                opacity: modelData.tokens > 0 ? 1 : 0
+                            Layout.fillHeight: true
+                            spacing: Kirigami.Units.smallSpacing / 2
+
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Accessible.role: Accessible.Graphic
+                                Accessible.name: i18n("%1: %2 tokens",
+                                    Qt.formatDate(new Date(modelData.date + "T12:00:00"), "dddd"),
+                                    view.compactNumber(modelData.tokens))
+                                Rectangle {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.bottom: parent.bottom
+                                    width: Kirigami.Units.gridUnit * 0.75
+                                    height: Math.max(3, parent.height * modelData.tokens / view.maxDailyTokens)
+                                    radius: width / 2
+                                    color: isToday ? view.accentColor : view.faded(view.accentColor, 0.4)
+                                }
+                                MouseArea {
+                                    id: barMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                }
+                                PlasmaComponents.ToolTip {
+                                    visible: barMouse.containsMouse
+                                    text: i18n("%1 · %2 tokens",
+                                        Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd, MMM d"),
+                                        view.compactNumber(modelData.tokens))
+                                }
                             }
-                        }
-                        PlasmaComponents.Label {
-                            text: view.compactNumber(modelData.tokens)
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                            horizontalAlignment: Text.AlignRight
-                            color: Kirigami.Theme.disabledTextColor
+                            PlasmaComponents.Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
+                                color: isToday ? view.accentColor : Kirigami.Theme.disabledTextColor
+                                font.weight: isToday ? Font.DemiBold : Font.Normal
+                            }
                         }
                     }
                 }
