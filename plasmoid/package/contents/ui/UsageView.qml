@@ -14,6 +14,8 @@ PlasmaExtras.Representation {
     required property bool refreshing
     required property string lastUpdatedAt
     property bool historyExpanded: false
+    property bool usageDetailsExpanded: false
+    property bool modelsExpanded: false
     signal refreshRequested()
     signal providerRequested(int index)
 
@@ -93,6 +95,22 @@ PlasmaExtras.Representation {
                     }
                 }
                 Item { Layout.fillWidth: true }
+                ColumnLayout {
+                    visible: !!view.record
+                    Layout.alignment: Qt.AlignRight
+                    spacing: 0
+                    PlasmaExtras.Heading {
+                        Layout.alignment: Qt.AlignRight
+                        text: view.compactNumber(view.today.tokens)
+                        level: 2
+                    }
+                    PlasmaComponents.Label {
+                        Layout.alignment: Qt.AlignRight
+                        text: i18n("Tokens today")
+                        color: Kirigami.Theme.disabledTextColor
+                        font: Kirigami.Theme.smallFont
+                    }
+                }
                 PlasmaComponents.BusyIndicator {
                     visible: view.refreshing
                     running: view.refreshing
@@ -209,91 +227,137 @@ PlasmaExtras.Representation {
                 }
             }
 
-            Rectangle {
+            ColumnLayout {
                 visible: !!view.record
                 Layout.fillWidth: true
-                implicitHeight: metrics.implicitHeight + Kirigami.Units.largeSpacing * 2
-                radius: Kirigami.Units.cornerRadius
-                color: Kirigami.Theme.alternateBackgroundColor
-                RowLayout {
-                    id: metrics
-                    anchors.fill: parent
-                    anchors.margins: Kirigami.Units.largeSpacing
-                    Repeater {
-                        model: view.record ? [
-                            { label: i18n("Tokens today"), value: view.compactNumber(view.today.tokens) },
-                            { label: i18n("Prompts"), value: view.compactNumber(view.record.localActivity.totals.prompts) },
-                            { label: i18n("Sessions"), value: view.compactNumber(view.record.localActivity.totals.sessions) }
-                        ] : []
-                        delegate: ColumnLayout {
-                            required property var modelData
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents.ToolButton {
+                    text: i18n("Usage details")
+                    icon.name: view.usageDetailsExpanded ? "arrow-down" : "arrow-right"
+                    onClicked: view.usageDetailsExpanded = !view.usageDetailsExpanded
+                    Accessible.name: view.usageDetailsExpanded
+                        ? i18n("Collapse usage details") : i18n("Expand usage details")
+                }
+                Rectangle {
+                    visible: view.usageDetailsExpanded
+                    Layout.fillWidth: true
+                    implicitHeight: usageDetails.implicitHeight + Kirigami.Units.largeSpacing * 2
+                    radius: Kirigami.Units.cornerRadius
+                    color: Kirigami.Theme.alternateBackgroundColor
+                    ColumnLayout {
+                        id: usageDetails
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.largeSpacing
+                        spacing: Kirigami.Units.smallSpacing
+                        RowLayout {
                             Layout.fillWidth: true
-                            spacing: 0
-                            PlasmaExtras.Heading { Layout.alignment: Qt.AlignHCenter; text: modelData.value; level: 2 }
                             PlasmaComponents.Label {
-                                Layout.alignment: Qt.AlignHCenter
-                                text: modelData.label
+                                Layout.fillWidth: true
+                                text: i18n("%1 prompts", view.compactNumber(view.record.localActivity.totals.prompts))
                                 color: Kirigami.Theme.disabledTextColor
-                                font: Kirigami.Theme.smallFont
+                            }
+                            PlasmaComponents.Label {
+                                Layout.fillWidth: true
+                                text: i18n("%1 sessions", view.compactNumber(view.record.localActivity.totals.sessions))
+                                horizontalAlignment: Text.AlignRight
+                                color: Kirigami.Theme.disabledTextColor
+                            }
+                        }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 1
+                            color: view.faded(Kirigami.Theme.textColor, 0.14)
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Repeater {
+                                model: [
+                                    { label: i18n("Input"), value: view.record.localActivity.totals.inputTokens },
+                                    { label: i18n("Read"), value: view.record.localActivity.totals.cachedInputTokens },
+                                    { label: i18n("Write"), value: view.record.localActivity.totals.cacheWriteInputTokens },
+                                    { label: i18n("Output"), value: view.record.localActivity.totals.outputTokens }
+                                ]
+                                delegate: ColumnLayout {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    PlasmaComponents.Label {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        text: view.compactNumber(modelData.value)
+                                        font.weight: Font.DemiBold
+                                    }
+                                    PlasmaComponents.Label {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        text: modelData.label
+                                        color: Kirigami.Theme.disabledTextColor
+                                        font: Kirigami.Theme.smallFont
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-                ColumnLayout {
-                    visible: !!view.record
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.smallSpacing
-                    PlasmaComponents.ToolButton {
-                        text: i18n("Last 7 days")
-                        icon.name: view.historyExpanded ? "arrow-down" : "arrow-right"
-                        onClicked: view.historyExpanded = !view.historyExpanded
-                        Accessible.name: view.historyExpanded
-                            ? i18n("Collapse last 7 days") : i18n("Expand last 7 days")
-                    }
-                    Repeater {
-                        model: view.record && view.historyExpanded ? view.record.localActivity.daily : []
-                        delegate: RowLayout {
-                            required property var modelData
+            ColumnLayout {
+                visible: !!view.record
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaComponents.ToolButton {
+                    text: i18n("Last 7 days")
+                    icon.name: view.historyExpanded ? "arrow-down" : "arrow-right"
+                    onClicked: view.historyExpanded = !view.historyExpanded
+                    Accessible.name: view.historyExpanded
+                        ? i18n("Collapse last 7 days") : i18n("Expand last 7 days")
+                }
+                Repeater {
+                    model: view.record && view.historyExpanded ? view.record.localActivity.daily : []
+                    delegate: RowLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        PlasmaComponents.Label {
+                            text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                            color: modelData.date === view.today.date ? view.accentColor : Kirigami.Theme.textColor
+                            font.weight: modelData.date === view.today.date ? Font.DemiBold : Font.Normal
+                        }
+                        Rectangle {
                             Layout.fillWidth: true
-                            spacing: Kirigami.Units.smallSpacing
-                            PlasmaComponents.Label {
-                                text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 2
-                                color: modelData.date === view.today.date ? view.accentColor : Kirigami.Theme.textColor
-                                font.weight: modelData.date === view.today.date ? Font.DemiBold : Font.Normal
-                            }
+                            implicitHeight: 6
+                            radius: height / 2
+                            color: view.faded(Kirigami.Theme.textColor, 0.13)
                             Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: 6
+                                width: parent.width * modelData.tokens / Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
+                                height: parent.height
                                 radius: height / 2
-                                color: view.faded(Kirigami.Theme.textColor, 0.13)
-                                Rectangle {
-                                    width: parent.width * modelData.tokens / Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
-                                    height: parent.height
-                                    radius: height / 2
-                                    color: view.accentColor
-                                    opacity: modelData.tokens > 0 ? 1 : 0
-                                }
+                                color: view.accentColor
+                                opacity: modelData.tokens > 0 ? 1 : 0
                             }
-                            PlasmaComponents.Label {
-                                text: view.compactNumber(modelData.tokens)
-                                Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                                horizontalAlignment: Text.AlignRight
-                                color: Kirigami.Theme.disabledTextColor
-                            }
+                        }
+                        PlasmaComponents.Label {
+                            text: view.compactNumber(modelData.tokens)
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                            horizontalAlignment: Text.AlignRight
+                            color: Kirigami.Theme.disabledTextColor
                         }
                     }
                 }
+            }
 
             ColumnLayout {
                 visible: view.record && view.record.localActivity.models.length > 0
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-                PlasmaExtras.Heading { text: i18n("Models"); level: 3 }
+                PlasmaComponents.ToolButton {
+                    text: i18n("Models")
+                    icon.name: view.modelsExpanded ? "arrow-down" : "arrow-right"
+                    onClicked: view.modelsExpanded = !view.modelsExpanded
+                    Accessible.name: view.modelsExpanded
+                        ? i18n("Collapse models") : i18n("Expand models")
+                }
                 Repeater {
-                    model: view.record ? view.record.localActivity.models : []
+                    model: view.record && view.modelsExpanded ? view.record.localActivity.models : []
                     delegate: RowLayout {
                         required property var modelData
                         Layout.fillWidth: true
@@ -302,38 +366,7 @@ PlasmaExtras.Representation {
                     }
                 }
             }
-
-                Rectangle {
-                visible: !!view.record
-                Layout.fillWidth: true
-                implicitHeight: tokenDetails.implicitHeight + Kirigami.Units.largeSpacing * 2
-                radius: Kirigami.Units.cornerRadius
-                color: Kirigami.Theme.alternateBackgroundColor
-                GridLayout {
-                    id: tokenDetails
-                    anchors.fill: parent
-                    anchors.margins: Kirigami.Units.largeSpacing
-                    columns: 2
-                    columnSpacing: Kirigami.Units.largeSpacing
-                    rowSpacing: Kirigami.Units.smallSpacing
-                    Repeater {
-                        model: view.record ? [
-                            { label: i18n("Input"), value: view.record.localActivity.totals.inputTokens },
-                            { label: i18n("Cache read"), value: view.record.localActivity.totals.cachedInputTokens },
-                            { label: i18n("Cache write"), value: view.record.localActivity.totals.cacheWriteInputTokens },
-                            { label: i18n("Output"), value: view.record.localActivity.totals.outputTokens }
-                        ] : []
-                        delegate: RowLayout {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            PlasmaComponents.Label { text: modelData.label; color: Kirigami.Theme.disabledTextColor }
-                            Item { Layout.fillWidth: true }
-                            PlasmaComponents.Label { text: view.compactNumber(modelData.value); font.weight: Font.DemiBold }
-                        }
-                    }
-                }
-                }
-            }
         }
     }
+}
 }
