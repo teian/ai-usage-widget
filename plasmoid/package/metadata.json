@@ -1,0 +1,14 @@
+{
+  "KPlugin": {
+    "Authors": [{ "Name": "AI Usage contributors" }],
+    "Category": "System Information",
+    "Description": "Codex subscription limits and token activity",
+    "Icon": "utilities-terminal",
+    "Id": "com.github.dean.aiusage",
+    "Name": "AI Usage",
+    "Version": "0.1.0",
+    "Website": "https://github.com/"
+  },
+  "KPackageStructure": "Plasma/Applet",
+  "X-Plasma-API-Minimum-Version": "6.0"
+}

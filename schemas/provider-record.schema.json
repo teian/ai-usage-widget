@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/ai-usage/provider-record.schema.json",
+  "title": "AI usage provider record",
+  "type": "object",
+  "required": ["schemaVersion", "provider", "updatedAt", "account", "localActivity"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "provider": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" }
+      }
+    },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "account": {
+      "type": "object",
+      "required": ["status", "limits"],
+      "properties": {
+        "status": { "enum": ["ok", "error", "unavailable", "skipped"] },
+        "message": { "type": "string" },
+        "plan": { "type": ["string", "null"] },
+        "limits": { "type": "array" },
+        "accountActivity": { "type": "object" }
+      }
+    },
+    "localActivity": {
+      "type": "object",
+      "required": ["scope", "totals", "daily", "models"],
+      "properties": {
+        "scope": { "const": "machine" },
+        "totals": { "type": "object" },
+        "daily": { "type": "array" },
+        "models": { "type": "array" }
+      }
+    }
+  }
+}
