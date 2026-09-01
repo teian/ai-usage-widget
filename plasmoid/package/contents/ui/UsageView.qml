@@ -20,7 +20,16 @@ PlasmaExtras.Representation {
     signal providerRequested(int index)
 
     implicitWidth: Kirigami.Units.gridUnit * 23
-    implicitHeight: Kirigami.Units.gridUnit * 32
+    // Track the tallest content height seen this session so switching between
+    // providers with different amounts of content (models, limits) doesn't
+    // resize the popup on every tab change - it only grows to fit, never shrinks.
+    readonly property real rawContentHeight: contentColumn.implicitHeight + Kirigami.Units.largeSpacing * 4
+    property real settledContentHeight: rawContentHeight
+    onRawContentHeightChanged: {
+        if (rawContentHeight > settledContentHeight) settledContentHeight = rawContentHeight
+    }
+    implicitHeight: Math.max(Kirigami.Units.gridUnit * 18,
+        Math.min(Kirigami.Units.gridUnit * 32, settledContentHeight))
 
     readonly property color accentColor: ProviderTheme.accentColor(record ? record.provider.id : "")
     readonly property var today: record && record.localActivity.daily.length
@@ -259,7 +268,7 @@ PlasmaExtras.Representation {
                 }
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+                    Layout.preferredHeight: Kirigami.Units.gridUnit * 5
                     spacing: Kirigami.Units.smallSpacing
                     Repeater {
                         model: view.record ? view.record.localActivity.daily : []
@@ -270,6 +279,13 @@ PlasmaExtras.Representation {
                             Layout.fillHeight: true
                             spacing: Kirigami.Units.smallSpacing / 2
 
+                            PlasmaComponents.Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: modelData.tokens > 0 ? view.compactNumber(modelData.tokens) : ""
+                                font.pixelSize: Kirigami.Theme.smallFont.pixelSize
+                                font.weight: isToday ? Font.DemiBold : Font.Normal
+                                color: isToday ? view.accentColor : Kirigami.Theme.disabledTextColor
+                            }
                             Item {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
