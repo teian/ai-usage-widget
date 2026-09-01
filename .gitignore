@@ -4,3 +4,8 @@ __pycache__/
 .coverage
 build/
 *.plasmoid
+
+# Bundled into the plasmoid package by scripts/install.sh; the top-level
+# collector/ and bin/ directories are the source of truth.
+/plasmoid/package/contents/collector/
+/plasmoid/package/contents/bin/

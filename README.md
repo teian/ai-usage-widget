@@ -35,6 +35,11 @@ prints or stores that token. Local Claude statistics work without that request.
 ./scripts/install.sh
 ```
 
+This bundles `collector/` and the `bin/` launchers into the plasmoid package
+itself before installing it with `kpackagetool6`, so the widget is
+self-contained - nothing is installed outside its own applet directory, and
+`./scripts/uninstall.sh` removes it in one step.
+
 Then add **AI Usage** from Plasma's widget picker. Refresh Plasma if it does not
 appear immediately:
 
@@ -59,7 +64,7 @@ Uninstall with `./scripts/uninstall.sh`.
 bin/ai-usage             all-provider collector
 bin/ai-usage-{provider}  individual provider collectors
 collector/               collection and normalization logic
-plasmoid/package/        Plasma 6 package
+plasmoid/package/        Plasma 6 package (install.sh bundles bin/ and collector/ into contents/)
 schemas/                 provider record contract
 tests/                    collector tests
 ```

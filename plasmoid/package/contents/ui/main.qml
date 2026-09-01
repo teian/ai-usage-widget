@@ -57,7 +57,9 @@ PlasmoidItem {
         errorText = ""
         refreshNonce++
         const configured = plasmoid.configuration.collectorCommand.trim()
-        let command = configured.indexOf("/") === -1 ? "$HOME/.local/bin/" + configured : configured
+        let command = configured.indexOf("/") === -1
+            ? '"' + String(Qt.resolvedUrl("../bin/" + configured)).replace(/^file:\/\//, "") + '"'
+            : configured
         if (plasmoid.configuration.enableCodex) command += " --provider codex"
         if (plasmoid.configuration.enableClaude) command += " --provider claude"
         activeSource = command + " #" + refreshNonce
