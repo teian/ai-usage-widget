@@ -76,7 +76,7 @@ Item {
         visible: gauge.showLabel
         anchors.centerIn: parent
         text: gauge.percentage >= 0 ? Math.round(gauge.percentage) + "%" : "—"
-        font.pixelSize: Math.max(8, gauge.gaugeSize * 0.28)
+        font.pixelSize: Math.max(9, gauge.gaugeSize * 0.36)
         font.weight: Font.DemiBold
         color: gauge.percentage >= 75 ? gauge.ringColor : Kirigami.Theme.textColor
     }
