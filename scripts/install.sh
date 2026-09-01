@@ -7,10 +7,11 @@ lib_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/ai-usage-widget"
 
 mkdir -p "$bin_dir" "$lib_dir"
 cp -R "$project_dir/collector" "$lib_dir/"
-install -m 755 "$project_dir/bin/ai-usage-codex" "$bin_dir/ai-usage-codex"
-
-# The installed launcher needs to import the installed collector package.
-sed -i "s|PROJECT_ROOT = Path(__file__).resolve().parent.parent|PROJECT_ROOT = Path(\"$lib_dir\")|" "$bin_dir/ai-usage-codex"
+for command in ai-usage ai-usage-codex ai-usage-claude; do
+  install -m 755 "$project_dir/bin/$command" "$bin_dir/$command"
+  # Installed launchers import the collector package copied above.
+  sed -i "s|PROJECT_ROOT = Path(__file__).resolve().parent.parent|PROJECT_ROOT = Path(\"$lib_dir\")|" "$bin_dir/$command"
+done
 
 kpackagetool6 --type Plasma/Applet --upgrade "$project_dir/plasmoid/package" 2>/dev/null || \
   kpackagetool6 --type Plasma/Applet --install "$project_dir/plasmoid/package"

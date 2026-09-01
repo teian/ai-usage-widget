@@ -9,7 +9,9 @@ import org.kde.plasma.plasma5support as Plasma5Support
 PlasmoidItem {
     id: root
 
-    property var record: null
+    property var providers: []
+    property int selectedIndex: 0
+    readonly property var record: providers.length > 0 ? providers[Math.min(selectedIndex, providers.length - 1)] : null
     property string errorText: ""
     property bool refreshing: false
     property int refreshNonce: 0
@@ -45,7 +47,9 @@ PlasmoidItem {
             return
         }
         try {
-            record = JSON.parse(data.stdout)
+            const result = JSON.parse(data.stdout)
+            providers = result.providers || [result]
+            if (selectedIndex >= providers.length) selectedIndex = 0
         } catch (error) {
             errorText = i18n("The collector returned invalid data: %1", error.toString())
         }
@@ -67,7 +71,7 @@ PlasmoidItem {
             spacing: Kirigami.Units.smallSpacing
 
             Kirigami.Icon {
-                source: "utilities-terminal"
+                source: root.record ? root.record.provider.icon : "utilities-terminal"
                 Layout.preferredWidth: Kirigami.Units.iconSizes.small
                 Layout.preferredHeight: Kirigami.Units.iconSizes.small
             }
@@ -81,9 +85,12 @@ PlasmoidItem {
 
     fullRepresentation: UsageView {
         record: root.record
+        providers: root.providers
+        selectedIndex: root.selectedIndex
         errorText: root.errorText
         refreshing: root.refreshing
         onRefreshRequested: root.refresh()
+        onProviderRequested: (index) => root.selectedIndex = index
     }
 
     Plasma5Support.DataSource {

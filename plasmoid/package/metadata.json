@@ -2,7 +2,7 @@
   "KPlugin": {
     "Authors": [{ "Name": "AI Usage contributors" }],
     "Category": "System Information",
-    "Description": "Codex subscription limits and token activity",
+    "Description": "Codex and Claude subscription limits and token activity",
     "Icon": "utilities-terminal",
     "Id": "com.github.dean.aiusage",
     "Name": "AI Usage",

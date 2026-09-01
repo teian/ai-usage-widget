@@ -1,8 +1,8 @@
 # AI Usage Widget
 
 A Plasma 6 widget for keeping an eye on AI coding-agent allowances and token
-activity. The first provider is Codex; providers are deliberately isolated so
-Claude and others can be added without changing the widget.
+activity. Codex and Claude Code are currently supported; providers are
+deliberately isolated so others can be added without changing the widget.
 
 ## What the prototype shows
 
@@ -11,6 +11,8 @@ Claude and others can be added without changing the widget.
 - Seven-day token activity
 - Token totals grouped by model
 - Account-level token activity when Codex makes it available
+- Claude Code subscription windows via its best-effort OAuth usage endpoint
+- Claude input, cache creation, cache reads, and output from local transcripts
 
 Local statistics are calculated from Codex session records under `CODEX_HOME`
 (normally `~/.codex`). They describe this machine, while limits and account
@@ -19,11 +21,13 @@ activity come from Codex services.
 ## Try the collector
 
 ```sh
-./bin/ai-usage-codex | python3 -m json.tool
+./bin/ai-usage | python3 -m json.tool
 ```
 
-The collector uses only the Python standard library. It does not read or copy
-credentials; `codex app-server` uses the existing Codex login.
+The collectors use only the Python standard library. Codex authentication stays
+inside `codex app-server`. The Claude collector reads the existing Claude Code
+OAuth token solely to request subscription limits from Anthropic; it never
+prints or stores that token. Local Claude statistics work without that request.
 
 ## Install for the current user
 
@@ -49,7 +53,8 @@ Uninstall with `./scripts/uninstall.sh`.
 ## Layout
 
 ```text
-bin/ai-usage-codex       executable collector
+bin/ai-usage             all-provider collector
+bin/ai-usage-{provider}  individual provider collectors
 collector/               collection and normalization logic
 plasmoid/package/        Plasma 6 package
 schemas/                 provider record contract

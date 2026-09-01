@@ -8,9 +8,12 @@ PlasmaExtras.Representation {
     id: view
 
     required property var record
+    required property var providers
+    required property int selectedIndex
     required property string errorText
     required property bool refreshing
     signal refreshRequested()
+    signal providerRequested(int index)
 
     implicitWidth: Kirigami.Units.gridUnit * 22
     implicitHeight: Kirigami.Units.gridUnit * 30
@@ -41,13 +44,13 @@ PlasmaExtras.Representation {
             RowLayout {
                 Layout.fillWidth: true
                 Kirigami.Icon {
-                    source: "utilities-terminal"
+                    source: view.record ? view.record.provider.icon : "utilities-terminal"
                     Layout.preferredWidth: Kirigami.Units.iconSizes.medium
                     Layout.preferredHeight: Kirigami.Units.iconSizes.medium
                 }
                 ColumnLayout {
                     spacing: 0
-                    PlasmaExtras.Heading { text: i18n("Codex"); level: 2 }
+                    PlasmaExtras.Heading { text: view.record ? view.record.provider.name : i18n("AI Usage"); level: 2 }
                     PlasmaComponents.Label {
                         text: view.record && view.record.account.plan ? String(view.record.account.plan).toUpperCase() : i18n("Local usage")
                         opacity: 0.7
@@ -59,6 +62,25 @@ PlasmaExtras.Representation {
                     enabled: !view.refreshing
                     onClicked: view.refreshRequested()
                     Accessible.name: i18n("Refresh")
+                }
+            }
+
+            RowLayout {
+                visible: view.providers.length > 1
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
+                Repeater {
+                    model: view.providers
+                    delegate: PlasmaComponents.Button {
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        text: modelData.provider.name
+                        icon.name: modelData.provider.icon
+                        checked: index === view.selectedIndex
+                        checkable: true
+                        onClicked: view.providerRequested(index)
+                    }
                 }
             }
 
@@ -163,9 +185,10 @@ PlasmaExtras.Representation {
             PlasmaComponents.Label {
                 visible: !!view.record
                 Layout.fillWidth: true
-                text: view.record ? i18n("Input %1 · cached %2 · output %3",
+                text: view.record ? i18n("Input %1 · cache read %2 · cache write %3 · output %4",
                     view.compactNumber(view.record.localActivity.totals.inputTokens),
                     view.compactNumber(view.record.localActivity.totals.cachedInputTokens),
+                    view.compactNumber(view.record.localActivity.totals.cacheWriteInputTokens),
                     view.compactNumber(view.record.localActivity.totals.outputTokens)) : ""
                 opacity: 0.65
                 wrapMode: Text.Wrap
