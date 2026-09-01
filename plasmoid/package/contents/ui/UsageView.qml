@@ -15,14 +15,18 @@ PlasmaExtras.Representation {
     signal refreshRequested()
     signal providerRequested(int index)
 
-    implicitWidth: Kirigami.Units.gridUnit * 22
-    implicitHeight: Kirigami.Units.gridUnit * 30
+    implicitWidth: Kirigami.Units.gridUnit * 23
+    implicitHeight: Kirigami.Units.gridUnit * 32
+
+    readonly property color accentColor: record && record.provider.id === "claude" ? "#D97757" : "#10A37F"
+    readonly property var today: record && record.localActivity.daily.length
+        ? record.localActivity.daily[record.localActivity.daily.length - 1] : ({ tokens: 0 })
 
     function compactNumber(value) {
         const number = Number(value || 0)
-        if (number >= 1000000) return (number / 1000000).toFixed(number >= 10000000 ? 0 : 1) + "M"
-        if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1) + "K"
-        return number.toLocaleString(Qt.locale())
+        if (number >= 1000000) return (number / 1000000).toFixed(number >= 10000000 ? 0 : 1).replace(".0", "") + "M"
+        if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1).replace(".0", "") + "K"
+        return Math.round(number).toLocaleString(Qt.locale(), "f", 0)
     }
 
     function resetLabel(value) {
@@ -34,6 +38,10 @@ PlasmaExtras.Representation {
         return i18np("Resets in %1 day", "Resets in %1 days", Math.ceil(seconds / 86400))
     }
 
+    function faded(color, alpha) {
+        return Qt.rgba(color.r, color.g, color.b, alpha)
+    }
+
     contentItem: PlasmaComponents.ScrollView {
         contentWidth: availableWidth
 
@@ -43,17 +51,17 @@ PlasmaExtras.Representation {
 
             RowLayout {
                 Layout.fillWidth: true
-                Kirigami.Icon {
-                    source: view.record ? view.record.provider.icon : "utilities-terminal"
-                    Layout.preferredWidth: Kirigami.Units.iconSizes.medium
-                    Layout.preferredHeight: Kirigami.Units.iconSizes.medium
+                spacing: Kirigami.Units.largeSpacing
+                BrandIcon {
+                    providerId: view.record ? view.record.provider.id : "codex"
+                    iconSize: Kirigami.Units.iconSizes.large
                 }
                 ColumnLayout {
-                    spacing: 0
+                    spacing: 1
                     PlasmaExtras.Heading { text: view.record ? view.record.provider.name : i18n("AI Usage"); level: 2 }
                     PlasmaComponents.Label {
-                        text: view.record && view.record.account.plan ? String(view.record.account.plan).toUpperCase() : i18n("Local usage")
-                        opacity: 0.7
+                        text: view.record && view.record.account.plan ? i18n("%1 plan", view.record.account.plan) : i18n("Local activity")
+                        color: Kirigami.Theme.disabledTextColor
                     }
                 }
                 Item { Layout.fillWidth: true }
@@ -61,86 +69,126 @@ PlasmaExtras.Representation {
                     icon.name: "view-refresh"
                     enabled: !view.refreshing
                     onClicked: view.refreshRequested()
-                    Accessible.name: i18n("Refresh")
+                    Accessible.name: i18n("Refresh usage")
                 }
             }
 
-            RowLayout {
+            Rectangle {
                 visible: view.providers.length > 1
                 Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-                Repeater {
-                    model: view.providers
-                    delegate: PlasmaComponents.Button {
-                        required property var modelData
-                        required property int index
-                        Layout.fillWidth: true
-                        text: modelData.provider.name
-                        icon.name: modelData.provider.icon
-                        checked: index === view.selectedIndex
-                        checkable: true
-                        onClicked: view.providerRequested(index)
+                implicitHeight: providerRow.implicitHeight + Kirigami.Units.smallSpacing * 2
+                radius: Kirigami.Units.cornerRadius
+                color: Kirigami.Theme.alternateBackgroundColor
+                RowLayout {
+                    id: providerRow
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.smallSpacing
+                    spacing: Kirigami.Units.smallSpacing
+                    Repeater {
+                        model: view.providers
+                        delegate: PlasmaComponents.Button {
+                            required property var modelData
+                            required property int index
+                            Layout.fillWidth: true
+                            text: modelData.provider.name
+                            checked: index === view.selectedIndex
+                            checkable: true
+                            onClicked: view.providerRequested(index)
+                        }
                     }
                 }
             }
 
-            PlasmaComponents.Label {
-                visible: view.errorText.length > 0
+            Rectangle {
+                visible: view.errorText.length > 0 || (view.record && view.record.account.status !== "ok" && view.record.account.message)
                 Layout.fillWidth: true
-                text: view.errorText
-                color: Kirigami.Theme.negativeTextColor
-                wrapMode: Text.Wrap
-            }
-
-            PlasmaComponents.Label {
-                visible: view.record && view.record.account.status !== "ok" && view.record.account.message
-                Layout.fillWidth: true
-                text: view.record ? view.record.account.message : ""
-                color: Kirigami.Theme.neutralTextColor
-                wrapMode: Text.Wrap
+                implicitHeight: warningLabel.implicitHeight + Kirigami.Units.largeSpacing * 2
+                radius: Kirigami.Units.cornerRadius
+                color: view.faded(Kirigami.Theme.neutralTextColor, 0.12)
+                PlasmaComponents.Label {
+                    id: warningLabel
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.largeSpacing
+                    text: view.errorText || (view.record ? view.record.account.message : "")
+                    color: view.errorText ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.neutralTextColor
+                    wrapMode: Text.Wrap
+                }
             }
 
             ColumnLayout {
                 visible: view.record && view.record.account.limits.length > 0
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-                PlasmaExtras.Heading { text: i18n("Limits"); level: 3 }
+                PlasmaExtras.Heading { text: i18n("Allowance"); level: 3 }
                 Repeater {
                     model: view.record ? view.record.account.limits : []
-                    delegate: ColumnLayout {
+                    delegate: Rectangle {
                         required property var modelData
                         Layout.fillWidth: true
-                        RowLayout {
-                            Layout.fillWidth: true
-                            PlasmaComponents.Label { text: modelData.label }
-                            Item { Layout.fillWidth: true }
-                            PlasmaComponents.Label { text: Math.round(modelData.usedPercent) + "%"; font.weight: Font.DemiBold }
+                        implicitHeight: limitContent.implicitHeight + Kirigami.Units.largeSpacing * 2
+                        radius: Kirigami.Units.cornerRadius
+                        color: Kirigami.Theme.alternateBackgroundColor
+                        ColumnLayout {
+                            id: limitContent
+                            anchors.fill: parent
+                            anchors.margins: Kirigami.Units.largeSpacing
+                            spacing: Kirigami.Units.smallSpacing
+                            RowLayout {
+                                Layout.fillWidth: true
+                                PlasmaComponents.Label { text: modelData.label; font.weight: Font.DemiBold }
+                                Item { Layout.fillWidth: true }
+                                PlasmaExtras.Heading { text: Math.round(modelData.usedPercent) + "%"; level: 3 }
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 6
+                                radius: height / 2
+                                color: view.faded(Kirigami.Theme.textColor, 0.14)
+                                Rectangle {
+                                    width: parent.width * Math.min(100, Math.max(0, modelData.usedPercent)) / 100
+                                    height: parent.height
+                                    radius: height / 2
+                                    color: view.accentColor
+                                }
+                            }
+                            PlasmaComponents.Label {
+                                text: view.resetLabel(modelData.resetsAt)
+                                color: Kirigami.Theme.disabledTextColor
+                                font: Kirigami.Theme.smallFont
+                            }
                         }
-                        PlasmaComponents.ProgressBar {
-                            Layout.fillWidth: true
-                            from: 0; to: 100; value: modelData.usedPercent
-                        }
-                        PlasmaComponents.Label { text: view.resetLabel(modelData.resetsAt); opacity: 0.65; font.pixelSize: Kirigami.Theme.smallFont.pixelSize }
                     }
                 }
             }
 
-            GridLayout {
+            Rectangle {
                 visible: !!view.record
                 Layout.fillWidth: true
-                columns: 3
-                columnSpacing: Kirigami.Units.largeSpacing
-                Repeater {
-                    model: view.record ? [
-                        { label: i18n("Today"), value: view.compactNumber(view.record.localActivity.daily[view.record.localActivity.daily.length - 1].tokens) },
-                        { label: i18n("Prompts"), value: view.compactNumber(view.record.localActivity.totals.prompts) },
-                        { label: i18n("Sessions"), value: view.compactNumber(view.record.localActivity.totals.sessions) }
-                    ] : []
-                    delegate: ColumnLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        PlasmaExtras.Heading { Layout.alignment: Qt.AlignHCenter; text: modelData.value; level: 2 }
-                        PlasmaComponents.Label { Layout.alignment: Qt.AlignHCenter; text: modelData.label; opacity: 0.65 }
+                implicitHeight: metrics.implicitHeight + Kirigami.Units.largeSpacing * 2
+                radius: Kirigami.Units.cornerRadius
+                color: Kirigami.Theme.alternateBackgroundColor
+                RowLayout {
+                    id: metrics
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.largeSpacing
+                    Repeater {
+                        model: view.record ? [
+                            { label: i18n("Tokens today"), value: view.compactNumber(view.today.tokens) },
+                            { label: i18n("Prompts"), value: view.compactNumber(view.record.localActivity.totals.prompts) },
+                            { label: i18n("Sessions"), value: view.compactNumber(view.record.localActivity.totals.sessions) }
+                        ] : []
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 0
+                            PlasmaExtras.Heading { Layout.alignment: Qt.AlignHCenter; text: modelData.value; level: 2 }
+                            PlasmaComponents.Label {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: modelData.label
+                                color: Kirigami.Theme.disabledTextColor
+                                font: Kirigami.Theme.smallFont
+                            }
+                        }
                     }
                 }
             }
@@ -155,14 +203,32 @@ PlasmaExtras.Representation {
                     delegate: RowLayout {
                         required property var modelData
                         Layout.fillWidth: true
-                        PlasmaComponents.Label { text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd"); Layout.preferredWidth: Kirigami.Units.gridUnit * 2 }
-                        PlasmaComponents.ProgressBar {
-                            Layout.fillWidth: true
-                            from: 0
-                            to: Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
-                            value: modelData.tokens
+                        spacing: Kirigami.Units.smallSpacing
+                        PlasmaComponents.Label {
+                            text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                            color: modelData.date === view.today.date ? view.accentColor : Kirigami.Theme.textColor
+                            font.weight: modelData.date === view.today.date ? Font.DemiBold : Font.Normal
                         }
-                        PlasmaComponents.Label { text: view.compactNumber(modelData.tokens); Layout.preferredWidth: Kirigami.Units.gridUnit * 3; horizontalAlignment: Text.AlignRight }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 6
+                            radius: height / 2
+                            color: view.faded(Kirigami.Theme.textColor, 0.13)
+                            Rectangle {
+                                width: parent.width * modelData.tokens / Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
+                                height: parent.height
+                                radius: height / 2
+                                color: view.accentColor
+                                opacity: modelData.tokens > 0 ? 1 : 0
+                            }
+                        }
+                        PlasmaComponents.Label {
+                            text: view.compactNumber(modelData.tokens)
+                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                            horizontalAlignment: Text.AlignRight
+                            color: Kirigami.Theme.disabledTextColor
+                        }
                     }
                 }
             }
@@ -170,7 +236,8 @@ PlasmaExtras.Representation {
             ColumnLayout {
                 visible: view.record && view.record.localActivity.models.length > 0
                 Layout.fillWidth: true
-                PlasmaExtras.Heading { text: i18n("By model"); level: 3 }
+                spacing: Kirigami.Units.smallSpacing
+                PlasmaExtras.Heading { text: i18n("Models"); level: 3 }
                 Repeater {
                     model: view.record ? view.record.localActivity.models : []
                     delegate: RowLayout {
@@ -182,16 +249,35 @@ PlasmaExtras.Representation {
                 }
             }
 
-            PlasmaComponents.Label {
+            Rectangle {
                 visible: !!view.record
                 Layout.fillWidth: true
-                text: view.record ? i18n("Input %1 · cache read %2 · cache write %3 · output %4",
-                    view.compactNumber(view.record.localActivity.totals.inputTokens),
-                    view.compactNumber(view.record.localActivity.totals.cachedInputTokens),
-                    view.compactNumber(view.record.localActivity.totals.cacheWriteInputTokens),
-                    view.compactNumber(view.record.localActivity.totals.outputTokens)) : ""
-                opacity: 0.65
-                wrapMode: Text.Wrap
+                implicitHeight: tokenDetails.implicitHeight + Kirigami.Units.largeSpacing * 2
+                radius: Kirigami.Units.cornerRadius
+                color: Kirigami.Theme.alternateBackgroundColor
+                GridLayout {
+                    id: tokenDetails
+                    anchors.fill: parent
+                    anchors.margins: Kirigami.Units.largeSpacing
+                    columns: 2
+                    columnSpacing: Kirigami.Units.largeSpacing
+                    rowSpacing: Kirigami.Units.smallSpacing
+                    Repeater {
+                        model: view.record ? [
+                            { label: i18n("Input"), value: view.record.localActivity.totals.inputTokens },
+                            { label: i18n("Cache read"), value: view.record.localActivity.totals.cachedInputTokens },
+                            { label: i18n("Cache write"), value: view.record.localActivity.totals.cacheWriteInputTokens },
+                            { label: i18n("Output"), value: view.record.localActivity.totals.outputTokens }
+                        ] : []
+                        delegate: RowLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            PlasmaComponents.Label { text: modelData.label; color: Kirigami.Theme.disabledTextColor }
+                            Item { Layout.fillWidth: true }
+                            PlasmaComponents.Label { text: view.compactNumber(modelData.value); font.weight: Font.DemiBold }
+                        }
+                    }
+                }
             }
         }
     }

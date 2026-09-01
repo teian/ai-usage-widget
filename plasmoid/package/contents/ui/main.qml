@@ -18,9 +18,9 @@ PlasmoidItem {
 
     function compactNumber(value) {
         const number = Number(value || 0)
-        if (number >= 1000000) return (number / 1000000).toFixed(number >= 10000000 ? 0 : 1) + "M"
-        if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1) + "K"
-        return number.toLocaleString(Qt.locale())
+        if (number >= 1000000) return (number / 1000000).toFixed(number >= 10000000 ? 0 : 1).replace(".0", "") + "M"
+        if (number >= 1000) return (number / 1000).toFixed(number >= 10000 ? 0 : 1).replace(".0", "") + "K"
+        return Math.round(number).toLocaleString(Qt.locale(), "f", 0)
     }
 
     function resetLabel(value) {
@@ -70,10 +70,9 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: Kirigami.Units.smallSpacing
 
-            Kirigami.Icon {
-                source: root.record ? root.record.provider.icon : "utilities-terminal"
-                Layout.preferredWidth: Kirigami.Units.iconSizes.small
-                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+            BrandIcon {
+                providerId: root.record ? root.record.provider.id : "codex"
+                iconSize: Kirigami.Units.iconSizes.small
             }
             PlasmaComponents.Label {
                 visible: !!root.record
