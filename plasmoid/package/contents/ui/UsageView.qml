@@ -109,17 +109,13 @@ PlasmaExtras.Representation {
                             highlighted: index === view.selectedIndex
                             onClicked: view.providerRequested(index)
                             contentItem: RowLayout {
-                                spacing: Kirigami.Units.smallSpacing
-                                ProviderGauge {
-                                    provider: modelData
-                                    gaugeSize: Kirigami.Units.iconSizes.small
-                                    selected: index === view.selectedIndex
-                                    showLabel: false
-                                    onActivated: view.providerRequested(index)
-                                }
                                 PlasmaComponents.Label {
+                                    readonly property var providerLimit: modelData.account.limits.length > 0
+                                        ? modelData.account.limits[0] : null
                                     Layout.fillWidth: true
-                                    text: modelData.provider.name
+                                    text: providerLimit
+                                        ? i18n("%1 · %2%", modelData.provider.name, Math.round(providerLimit.usedPercent))
+                                        : modelData.provider.name
                                     font.weight: index === view.selectedIndex ? Font.DemiBold : Font.Normal
                                 }
                             }

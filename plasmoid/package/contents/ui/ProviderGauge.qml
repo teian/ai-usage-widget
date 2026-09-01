@@ -72,6 +72,17 @@ Item {
         color: gauge.percentage >= 75 ? gauge.ringColor : Kirigami.Theme.textColor
     }
 
+    BrandIcon {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: -2
+        anchors.bottomMargin: -2
+        providerId: gauge.provider.provider.id
+        iconSize: 14
+        border.width: 1
+        border.color: Kirigami.Theme.backgroundColor
+    }
+
     MouseArea {
         id: mouse
         anchors.fill: parent
