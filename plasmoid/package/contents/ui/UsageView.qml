@@ -102,14 +102,26 @@ PlasmaExtras.Representation {
                     spacing: Kirigami.Units.smallSpacing
                     Repeater {
                         model: view.providers
-                        delegate: PlasmaComponents.Button {
+                        delegate: PlasmaComponents.ItemDelegate {
                             required property var modelData
                             required property int index
                             Layout.fillWidth: true
-                            text: modelData.provider.name
-                            checked: index === view.selectedIndex
-                            checkable: true
+                            highlighted: index === view.selectedIndex
                             onClicked: view.providerRequested(index)
+                            contentItem: RowLayout {
+                                spacing: Kirigami.Units.smallSpacing
+                                ProviderGauge {
+                                    provider: modelData
+                                    gaugeSize: Kirigami.Units.iconSizes.small
+                                    selected: index === view.selectedIndex
+                                    onActivated: view.providerRequested(index)
+                                }
+                                PlasmaComponents.Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.provider.name
+                                    font.weight: index === view.selectedIndex ? Font.DemiBold : Font.Normal
+                                }
+                            }
                         }
                     }
                 }
