@@ -44,10 +44,12 @@ PlasmaExtras.Representation {
     }
 
     contentItem: PlasmaComponents.ScrollView {
+        id: scrollView
         contentWidth: availableWidth
+        PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
 
         Item {
-            width: parent.width
+            width: scrollView.availableWidth
             implicitHeight: contentColumn.implicitHeight + Kirigami.Units.largeSpacing * 2
 
             ColumnLayout {
