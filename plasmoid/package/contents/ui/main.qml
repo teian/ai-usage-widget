@@ -83,12 +83,14 @@ PlasmoidItem {
     toolTipSubText: record ? i18n("%1 tokens today", compactNumber(record.localActivity.daily[record.localActivity.daily.length - 1].tokens)) : errorText
 
     compactRepresentation: Item {
-        implicitWidth: row.implicitWidth
+        implicitWidth: row.implicitWidth + Kirigami.Units.smallSpacing * 2
         implicitHeight: Math.max(Kirigami.Units.gridUnit, row.implicitHeight)
+        Layout.minimumWidth: implicitWidth
+        Layout.preferredWidth: implicitWidth
         RowLayout {
             id: row
             anchors.centerIn: parent
-            spacing: 0
+            spacing: Kirigami.Units.smallSpacing
             Item {
                 visible: root.providers.length === 0 && root.anyProviderEnabled
                 Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium

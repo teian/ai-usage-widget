@@ -7,13 +7,13 @@ Item {
 
     required property var provider
     property bool selected: false
-    property int gaugeSize: Math.max(Kirigami.Units.iconSizes.smallMedium, Kirigami.Units.gridUnit + 4)
+    property int gaugeSize: Kirigami.Units.iconSizes.medium
     readonly property var primaryLimit: provider && provider.account.limits.length > 0 ? provider.account.limits[0] : null
     readonly property real percentage: primaryLimit ? Number(primaryLimit.usedPercent || 0) : -1
     readonly property color accentColor: provider && provider.provider.id === "claude" ? "#D97757" : "#10A37F"
     signal activated()
 
-    implicitWidth: gaugeSize + Kirigami.Units.smallSpacing
+    implicitWidth: gaugeSize
     implicitHeight: gaugeSize
 
     function faded(color, alpha) {
