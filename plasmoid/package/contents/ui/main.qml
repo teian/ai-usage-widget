@@ -79,8 +79,10 @@ PlasmoidItem {
 
     Plasmoid.icon: "utilities-terminal"
     Plasmoid.status: record || errorText ? PlasmaCore.Types.ActiveStatus : PlasmaCore.Types.PassiveStatus
-    toolTipMainText: i18n("AI Usage")
-    toolTipSubText: record ? i18n("%1 tokens today", compactNumber(record.localActivity.daily[record.localActivity.daily.length - 1].tokens)) : errorText
+    toolTipMainText: root.providers.length === 0 ? i18n("AI Usage") : ""
+    toolTipSubText: root.providers.length === 0
+        ? (record ? i18n("%1 tokens today", compactNumber(record.localActivity.daily[record.localActivity.daily.length - 1].tokens)) : errorText)
+        : ""
 
     compactRepresentation: Item {
         implicitWidth: row.implicitWidth + Kirigami.Units.smallSpacing * 2
