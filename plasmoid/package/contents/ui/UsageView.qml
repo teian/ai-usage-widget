@@ -114,6 +114,7 @@ PlasmaExtras.Representation {
                                     provider: modelData
                                     gaugeSize: Kirigami.Units.iconSizes.small
                                     selected: index === view.selectedIndex
+                                    showLabel: false
                                     onActivated: view.providerRequested(index)
                                 }
                                 PlasmaComponents.Label {

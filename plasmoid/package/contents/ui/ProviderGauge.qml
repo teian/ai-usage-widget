@@ -7,6 +7,7 @@ Item {
 
     required property var provider
     property bool selected: false
+    property bool showLabel: true
     property int gaugeSize: Kirigami.Units.iconSizes.medium
     readonly property var primaryLimit: provider && provider.account.limits.length > 0 ? provider.account.limits[0] : null
     readonly property real percentage: primaryLimit ? Number(primaryLimit.usedPercent || 0) : -1
@@ -63,6 +64,7 @@ Item {
     }
 
     PlasmaComponents.Label {
+        visible: gauge.showLabel
         anchors.centerIn: parent
         text: gauge.percentage >= 0 ? Math.round(gauge.percentage) + "%" : "—"
         font.pixelSize: Math.max(8, gauge.gaugeSize * 0.28)
