@@ -36,7 +36,9 @@ PlasmoidItem {
         refreshing = true
         errorText = ""
         refreshNonce++
-        executable.connectSource(plasmoid.configuration.collectorCommand + " #" + refreshNonce)
+        const configured = plasmoid.configuration.collectorCommand.trim()
+        const command = configured.indexOf("/") === -1 ? "$HOME/.local/bin/" + configured : configured
+        executable.connectSource(command + " #" + refreshNonce)
     }
 
     function consumeOutput(source, data) {
@@ -60,24 +62,30 @@ PlasmoidItem {
     toolTipMainText: i18n("AI Usage")
     toolTipSubText: record ? i18n("%1 tokens today", compactNumber(record.localActivity.daily[record.localActivity.daily.length - 1].tokens)) : errorText
 
-    compactRepresentation: MouseArea {
-        implicitWidth: row.implicitWidth + Kirigami.Units.smallSpacing * 2
-        implicitHeight: Kirigami.Units.gridUnit
-        onClicked: root.expanded = !root.expanded
-
+    compactRepresentation: Item {
+        implicitWidth: row.implicitWidth
+        implicitHeight: Math.max(Kirigami.Units.gridUnit, row.implicitHeight)
         RowLayout {
             id: row
             anchors.centerIn: parent
-            spacing: Kirigami.Units.smallSpacing
-
+            spacing: 0
             BrandIcon {
-                providerId: root.record ? root.record.provider.id : "codex"
-                iconSize: Kirigami.Units.iconSizes.small
+                visible: root.providers.length === 0
+                providerId: "codex"
+                iconSize: Kirigami.Units.iconSizes.smallMedium
             }
-            PlasmaComponents.Label {
-                visible: !!root.record
-                text: root.record ? root.compactNumber(root.record.localActivity.daily[root.record.localActivity.daily.length - 1].tokens) : ""
-                font.weight: Font.DemiBold
+            Repeater {
+                model: root.providers
+                delegate: ProviderGauge {
+                    required property var modelData
+                    required property int index
+                    provider: modelData
+                    selected: index === root.selectedIndex
+                    onActivated: {
+                        root.selectedIndex = index
+                        root.expanded = true
+                    }
+                }
             }
         }
     }
