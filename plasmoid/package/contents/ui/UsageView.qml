@@ -12,6 +12,7 @@ PlasmaExtras.Representation {
     required property int selectedIndex
     required property string errorText
     required property bool refreshing
+    property bool historyExpanded: false
     signal refreshRequested()
     signal providerRequested(int index)
 
@@ -45,9 +46,16 @@ PlasmaExtras.Representation {
     contentItem: PlasmaComponents.ScrollView {
         contentWidth: availableWidth
 
-        ColumnLayout {
+        Item {
             width: parent.width
-            spacing: Kirigami.Units.largeSpacing
+            implicitHeight: contentColumn.implicitHeight + Kirigami.Units.largeSpacing * 2
+
+            ColumnLayout {
+                id: contentColumn
+                x: Kirigami.Units.largeSpacing
+                y: Kirigami.Units.largeSpacing
+                width: Math.max(0, parent.width - Kirigami.Units.largeSpacing * 2)
+                spacing: Kirigami.Units.largeSpacing
 
             RowLayout {
                 Layout.fillWidth: true
@@ -193,45 +201,51 @@ PlasmaExtras.Representation {
                 }
             }
 
-            ColumnLayout {
-                visible: !!view.record
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
-                PlasmaExtras.Heading { text: i18n("Last 7 days"); level: 3 }
-                Repeater {
-                    model: view.record ? view.record.localActivity.daily : []
-                    delegate: RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-                        PlasmaComponents.Label {
-                            text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 2
-                            color: modelData.date === view.today.date ? view.accentColor : Kirigami.Theme.textColor
-                            font.weight: modelData.date === view.today.date ? Font.DemiBold : Font.Normal
-                        }
-                        Rectangle {
+                ColumnLayout {
+                    visible: !!view.record
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+                    PlasmaComponents.ToolButton {
+                        text: i18n("Last 7 days")
+                        icon.name: view.historyExpanded ? "arrow-down" : "arrow-right"
+                        onClicked: view.historyExpanded = !view.historyExpanded
+                        Accessible.name: view.historyExpanded
+                            ? i18n("Collapse last 7 days") : i18n("Expand last 7 days")
+                    }
+                    Repeater {
+                        model: view.record && view.historyExpanded ? view.record.localActivity.daily : []
+                        delegate: RowLayout {
+                            required property var modelData
                             Layout.fillWidth: true
-                            implicitHeight: 6
-                            radius: height / 2
-                            color: view.faded(Kirigami.Theme.textColor, 0.13)
-                            Rectangle {
-                                width: parent.width * modelData.tokens / Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
-                                height: parent.height
-                                radius: height / 2
-                                color: view.accentColor
-                                opacity: modelData.tokens > 0 ? 1 : 0
+                            spacing: Kirigami.Units.smallSpacing
+                            PlasmaComponents.Label {
+                                text: Qt.formatDate(new Date(modelData.date + "T12:00:00"), "ddd")
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 2
+                                color: modelData.date === view.today.date ? view.accentColor : Kirigami.Theme.textColor
+                                font.weight: modelData.date === view.today.date ? Font.DemiBold : Font.Normal
                             }
-                        }
-                        PlasmaComponents.Label {
-                            text: view.compactNumber(modelData.tokens)
-                            Layout.preferredWidth: Kirigami.Units.gridUnit * 3
-                            horizontalAlignment: Text.AlignRight
-                            color: Kirigami.Theme.disabledTextColor
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 6
+                                radius: height / 2
+                                color: view.faded(Kirigami.Theme.textColor, 0.13)
+                                Rectangle {
+                                    width: parent.width * modelData.tokens / Math.max(1, ...view.record.localActivity.daily.map(day => day.tokens))
+                                    height: parent.height
+                                    radius: height / 2
+                                    color: view.accentColor
+                                    opacity: modelData.tokens > 0 ? 1 : 0
+                                }
+                            }
+                            PlasmaComponents.Label {
+                                text: view.compactNumber(modelData.tokens)
+                                Layout.preferredWidth: Kirigami.Units.gridUnit * 3
+                                horizontalAlignment: Text.AlignRight
+                                color: Kirigami.Theme.disabledTextColor
+                            }
                         }
                     }
                 }
-            }
 
             ColumnLayout {
                 visible: view.record && view.record.localActivity.models.length > 0
@@ -249,7 +263,7 @@ PlasmaExtras.Representation {
                 }
             }
 
-            Rectangle {
+                Rectangle {
                 visible: !!view.record
                 Layout.fillWidth: true
                 implicitHeight: tokenDetails.implicitHeight + Kirigami.Units.largeSpacing * 2
@@ -277,6 +291,7 @@ PlasmaExtras.Representation {
                             PlasmaComponents.Label { text: view.compactNumber(modelData.value); font.weight: Font.DemiBold }
                         }
                     }
+                }
                 }
             }
         }
