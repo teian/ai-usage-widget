@@ -122,6 +122,9 @@ PlasmoidItem {
                     required property var modelData
                     required property int index
                     provider: modelData
+                    limitPreference: modelData.provider.id === "claude"
+                        ? plasmoid.configuration.claudeGaugeLimit
+                        : plasmoid.configuration.codexGaugeLimit
                     selected: index === root.selectedIndex
                     onActivated: {
                         root.selectedIndex = index

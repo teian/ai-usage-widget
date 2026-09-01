@@ -7,6 +7,8 @@ Kirigami.FormLayout {
     property alias cfg_refreshMinutes: refresh.value
     property alias cfg_enableCodex: enableCodex.checked
     property alias cfg_enableClaude: enableClaude.checked
+    property alias cfg_codexGaugeLimit: codexGaugeLimit.currentIndex
+    property alias cfg_claudeGaugeLimit: claudeGaugeLimit.currentIndex
 
     Kirigami.Heading {
         text: i18n("Providers")
@@ -22,6 +24,32 @@ Kirigami.FormLayout {
     Controls.CheckBox {
         id: enableClaude
         text: i18n("Claude Code")
+    }
+
+    Kirigami.Heading {
+        text: i18n("Panel gauges")
+        level: 2
+        Kirigami.FormData.isSection: true
+    }
+
+    Controls.ComboBox {
+        id: codexGaugeLimit
+        Kirigami.FormData.label: i18n("Codex allowance:")
+        model: [
+            i18n("First available"),
+            i18n("Short-window allowance"),
+            i18n("Weekly allowance")
+        ]
+    }
+
+    Controls.ComboBox {
+        id: claudeGaugeLimit
+        Kirigami.FormData.label: i18n("Claude allowance:")
+        model: [
+            i18n("First available"),
+            i18n("Short-window allowance"),
+            i18n("Weekly allowance")
+        ]
     }
 
     Kirigami.Heading {

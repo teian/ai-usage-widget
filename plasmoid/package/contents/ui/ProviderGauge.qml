@@ -9,7 +9,9 @@ Item {
     property bool selected: false
     property bool showLabel: true
     property int gaugeSize: Kirigami.Units.iconSizes.medium
-    readonly property var primaryLimit: provider && provider.account.limits.length > 0 ? provider.account.limits[0] : null
+    // 0: first available, 1: short window, 2: weekly
+    property int limitPreference: 0
+    readonly property var primaryLimit: selectedLimit()
     readonly property real percentage: primaryLimit ? Number(primaryLimit.usedPercent || 0) : -1
     readonly property color accentColor: provider && provider.provider.id === "claude" ? "#D97757" : "#10A37F"
     readonly property color ringColor: percentage >= 90 ? Kirigami.Theme.negativeTextColor
@@ -22,6 +24,22 @@ Item {
 
     function faded(color, alpha) {
         return Qt.rgba(color.r, color.g, color.b, alpha)
+    }
+
+    function selectedLimit() {
+        const limits = provider && provider.account && provider.account.limits ? provider.account.limits : []
+        if (limits.length === 0) return null
+        if (limitPreference === 2) {
+            const weekly = limits.find(limit => Number(limit.windowMinutes) === 10080)
+            if (weekly) return weekly
+        } else if (limitPreference === 1) {
+            const shortWindow = limits.find(limit => {
+                const minutes = Number(limit.windowMinutes)
+                return minutes > 0 && minutes < 10080
+            })
+            if (shortWindow) return shortWindow
+        }
+        return limits[0]
     }
 
     Canvas {
