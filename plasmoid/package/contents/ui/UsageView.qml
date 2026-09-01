@@ -186,45 +186,56 @@ PlasmaExtras.Representation {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
                 PlasmaExtras.Heading { text: i18n("Allowance"); level: 3 }
-                Repeater {
-                    model: view.record ? view.record.account.limits : []
-                    delegate: Rectangle {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitHeight: limitContent.implicitHeight + Kirigami.Units.largeSpacing * 2
-                        radius: Kirigami.Units.cornerRadius
-                        color: Kirigami.Theme.alternateBackgroundColor
-                        ColumnLayout {
-                            id: limitContent
-                            anchors.fill: parent
-                            anchors.margins: Kirigami.Units.largeSpacing
-                            spacing: Kirigami.Units.smallSpacing
-                            RowLayout {
-                                Layout.fillWidth: true
-                                PlasmaComponents.Label { text: modelData.label; font.weight: Font.DemiBold }
-                                Item { Layout.fillWidth: true }
-                                PlasmaExtras.Heading {
-                                    text: Math.round(modelData.usedPercent) + "%"
-                                    level: 3
-                                    color: view.limitColor(modelData.usedPercent)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+                    Repeater {
+                        model: view.record ? view.record.account.limits : []
+                        delegate: Rectangle {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            implicitHeight: limitContent.implicitHeight + Kirigami.Units.largeSpacing * 2
+                            radius: Kirigami.Units.cornerRadius
+                            color: Kirigami.Theme.alternateBackgroundColor
+                            ColumnLayout {
+                                id: limitContent
+                                anchors.fill: parent
+                                anchors.margins: Kirigami.Units.largeSpacing
+                                spacing: Kirigami.Units.smallSpacing / 2
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Kirigami.Units.smallSpacing
+                                    PlasmaComponents.Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.label
+                                        font.weight: Font.DemiBold
+                                        elide: Text.ElideRight
+                                    }
+                                    PlasmaComponents.Label {
+                                        text: Math.round(modelData.usedPercent) + "%"
+                                        font.weight: Font.DemiBold
+                                        color: view.limitColor(modelData.usedPercent)
+                                    }
                                 }
-                            }
-                            Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: 6
-                                radius: height / 2
-                                color: view.faded(Kirigami.Theme.textColor, 0.14)
                                 Rectangle {
-                                    width: parent.width * Math.min(100, Math.max(0, modelData.usedPercent)) / 100
-                                    height: parent.height
+                                    Layout.fillWidth: true
+                                    implicitHeight: 6
                                     radius: height / 2
-                                    color: view.limitColor(modelData.usedPercent)
+                                    color: view.faded(Kirigami.Theme.textColor, 0.14)
+                                    Rectangle {
+                                        width: parent.width * Math.min(100, Math.max(0, modelData.usedPercent)) / 100
+                                        height: parent.height
+                                        radius: height / 2
+                                        color: view.limitColor(modelData.usedPercent)
+                                    }
                                 }
-                            }
-                            PlasmaComponents.Label {
-                                text: view.resetLabel(modelData.resetsAt)
-                                color: Kirigami.Theme.disabledTextColor
-                                font: Kirigami.Theme.smallFont
+                                PlasmaComponents.Label {
+                                    Layout.fillWidth: true
+                                    text: view.resetLabel(modelData.resetsAt)
+                                    color: Kirigami.Theme.disabledTextColor
+                                    font: Kirigami.Theme.smallFont
+                                    elide: Text.ElideRight
+                                }
                             }
                         }
                     }
