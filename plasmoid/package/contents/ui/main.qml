@@ -14,6 +14,7 @@ PlasmoidItem {
     readonly property var record: providers.length > 0 ? providers[Math.min(selectedIndex, providers.length - 1)] : null
     property string errorText: ""
     property bool refreshing: false
+    property string lastUpdatedAt: ""
     property int refreshNonce: 0
     property string activeSource: ""
     readonly property bool anyProviderEnabled: plasmoid.configuration.enableCodex || plasmoid.configuration.enableClaude
@@ -71,6 +72,7 @@ PlasmoidItem {
         try {
             const result = JSON.parse(data.stdout)
             providers = result.providers || [result]
+            lastUpdatedAt = result.updatedAt || (providers.length > 0 ? providers[0].updatedAt || "" : "")
             if (selectedIndex >= providers.length) selectedIndex = 0
         } catch (error) {
             errorText = i18n("The collector returned invalid data: %1", error.toString())
@@ -143,6 +145,7 @@ PlasmoidItem {
         selectedIndex: root.selectedIndex
         errorText: root.errorText
         refreshing: root.refreshing
+        lastUpdatedAt: root.lastUpdatedAt
         onRefreshRequested: root.refresh()
         onProviderRequested: (index) => root.selectedIndex = index
     }

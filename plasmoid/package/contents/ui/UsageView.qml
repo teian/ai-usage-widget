@@ -12,6 +12,7 @@ PlasmaExtras.Representation {
     required property int selectedIndex
     required property string errorText
     required property bool refreshing
+    required property string lastUpdatedAt
     property bool historyExpanded: false
     signal refreshRequested()
     signal providerRequested(int index)
@@ -49,6 +50,13 @@ PlasmaExtras.Representation {
         return accentColor
     }
 
+    function updatedLabel(value) {
+        if (!value) return ""
+        const date = new Date(value)
+        if (isNaN(date.getTime())) return ""
+        return i18n("Updated %1", Qt.formatTime(date, "HH:mm"))
+    }
+
     contentItem: PlasmaComponents.ScrollView {
         id: scrollView
         contentWidth: availableWidth
@@ -76,14 +84,25 @@ PlasmaExtras.Representation {
                     spacing: 1
                     PlasmaExtras.Heading { text: view.record ? view.record.provider.name : i18n("AI Usage"); level: 2 }
                     PlasmaComponents.Label {
-                        text: view.record && view.record.account.plan ? i18n("%1 plan", view.record.account.plan) : i18n("Local activity")
+                        readonly property string planText: view.record && view.record.account.plan
+                            ? i18n("%1 plan", view.record.account.plan) : ""
+                        readonly property string updateText: view.updatedLabel(view.lastUpdatedAt)
+                        text: planText && updateText ? i18n("%1 · %2", planText, updateText)
+                            : planText || updateText || i18n("Local activity")
                         color: Kirigami.Theme.disabledTextColor
                     }
                 }
                 Item { Layout.fillWidth: true }
+                PlasmaComponents.BusyIndicator {
+                    visible: view.refreshing
+                    running: view.refreshing
+                    Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                    Accessible.name: i18n("Refreshing usage")
+                }
                 PlasmaComponents.ToolButton {
+                    visible: !view.refreshing
                     icon.name: "view-refresh"
-                    enabled: !view.refreshing
                     onClicked: view.refreshRequested()
                     Accessible.name: i18n("Refresh usage")
                 }
