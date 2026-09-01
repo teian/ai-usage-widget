@@ -15,7 +15,6 @@ PlasmaExtras.Representation {
     required property string lastUpdatedAt
     property bool historyExpanded: false
     property bool usageDetailsExpanded: false
-    property bool modelsExpanded: false
     signal refreshRequested()
     signal providerRequested(int index)
 
@@ -349,20 +348,31 @@ PlasmaExtras.Representation {
                 visible: view.record && view.record.localActivity.models.length > 0
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
-                PlasmaComponents.ToolButton {
-                    text: i18n("Models")
-                    icon.name: view.modelsExpanded ? "arrow-down" : "arrow-right"
-                    onClicked: view.modelsExpanded = !view.modelsExpanded
-                    Accessible.name: view.modelsExpanded
-                        ? i18n("Collapse models") : i18n("Expand models")
-                }
-                Repeater {
-                    model: view.record && view.modelsExpanded ? view.record.localActivity.models : []
-                    delegate: RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        PlasmaComponents.Label { Layout.fillWidth: true; text: modelData.model; elide: Text.ElideRight }
-                        PlasmaComponents.Label { text: view.compactNumber(modelData.totalTokens); font.weight: Font.DemiBold }
+                PlasmaExtras.Heading { text: i18n("Models"); level: 3 }
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: modelList.implicitHeight + Kirigami.Units.largeSpacing * 2
+                    radius: Kirigami.Units.cornerRadius
+                    color: Kirigami.Theme.alternateBackgroundColor
+                    ColumnLayout {
+                        id: modelList
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.largeSpacing
+                        spacing: Kirigami.Units.smallSpacing
+                        PlasmaComponents.Label {
+                            text: i18n("Recent local activity")
+                            color: Kirigami.Theme.disabledTextColor
+                            font: Kirigami.Theme.smallFont
+                        }
+                        Repeater {
+                            model: view.record ? view.record.localActivity.models : []
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                PlasmaComponents.Label { Layout.fillWidth: true; text: modelData.model; elide: Text.ElideRight }
+                                PlasmaComponents.Label { text: view.compactNumber(modelData.totalTokens); font.weight: Font.DemiBold }
+                            }
+                        }
                     }
                 }
             }
