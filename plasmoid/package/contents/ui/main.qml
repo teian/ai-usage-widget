@@ -15,7 +15,10 @@ PlasmoidItem {
     property string errorText: ""
     property bool refreshing: false
     property int refreshNonce: 0
+    property string activeSource: ""
     readonly property bool anyProviderEnabled: plasmoid.configuration.enableCodex || plasmoid.configuration.enableClaude
+    readonly property string pendingProviderId: plasmoid.configuration.enableClaude && !plasmoid.configuration.enableCodex
+                                                ? "claude" : "codex"
 
     function compactNumber(value) {
         const number = Number(value || 0)
@@ -34,6 +37,10 @@ PlasmoidItem {
     }
 
     function refresh() {
+        if (activeSource) {
+            executable.disconnectSource(activeSource)
+            activeSource = ""
+        }
         if (!anyProviderEnabled) {
             providers = []
             selectedIndex = 0
@@ -48,12 +55,15 @@ PlasmoidItem {
         let command = configured.indexOf("/") === -1 ? "$HOME/.local/bin/" + configured : configured
         if (plasmoid.configuration.enableCodex) command += " --provider codex"
         if (plasmoid.configuration.enableClaude) command += " --provider claude"
-        executable.connectSource(command + " #" + refreshNonce)
+        activeSource = command + " #" + refreshNonce
+        executable.connectSource(activeSource)
     }
 
     function consumeOutput(source, data) {
-        refreshing = false
         executable.disconnectSource(source)
+        if (source !== activeSource) return
+        activeSource = ""
+        refreshing = false
         if (Number(data["exit code"]) !== 0) {
             errorText = data.stderr || i18n("Collector exited with an error.")
             return
@@ -79,10 +89,24 @@ PlasmoidItem {
             id: row
             anchors.centerIn: parent
             spacing: 0
-            BrandIcon {
+            Item {
                 visible: root.providers.length === 0 && root.anyProviderEnabled
-                providerId: "codex"
-                iconSize: Kirigami.Units.iconSizes.smallMedium
+                Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+                Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+
+                BrandIcon {
+                    anchors.centerIn: parent
+                    providerId: root.pendingProviderId
+                    iconSize: Kirigami.Units.iconSizes.smallMedium
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        root.expanded = true
+                        if (!root.refreshing) root.refresh()
+                    }
+                }
             }
             Kirigami.Icon {
                 visible: !root.anyProviderEnabled
@@ -123,6 +147,13 @@ PlasmoidItem {
     }
 
     Timer {
+        id: configRefreshTimer
+        interval: 150
+        repeat: false
+        onTriggered: root.refresh()
+    }
+
+    Timer {
         interval: Math.max(1, plasmoid.configuration.refreshMinutes) * 60 * 1000
         repeat: true
         running: true
@@ -131,8 +162,8 @@ PlasmoidItem {
 
     Connections {
         target: plasmoid.configuration
-        function onEnableCodexChanged() { root.refresh() }
-        function onEnableClaudeChanged() { root.refresh() }
+        function onEnableCodexChanged() { configRefreshTimer.restart() }
+        function onEnableClaudeChanged() { configRefreshTimer.restart() }
     }
 
     Component.onCompleted: refresh()
