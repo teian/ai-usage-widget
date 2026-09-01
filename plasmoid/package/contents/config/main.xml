@@ -10,5 +10,11 @@
     <entry name="refreshMinutes" type="Int">
       <default>15</default>
     </entry>
+    <entry name="enableCodex" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="enableClaude" type="Bool">
+      <default>true</default>
+    </entry>
   </group>
 </kcfg>

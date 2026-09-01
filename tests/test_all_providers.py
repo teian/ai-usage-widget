@@ -1,0 +1,25 @@
+import unittest
+from unittest.mock import patch
+
+from collector.all_providers import collect
+
+
+class ProviderSelectionTests(unittest.TestCase):
+    @patch("collector.all_providers.collect_claude", return_value={"provider": {"id": "claude"}})
+    @patch("collector.all_providers.collect_codex", return_value={"provider": {"id": "codex"}})
+    @patch("collector.all_providers.shutil.which", return_value="/usr/bin/provider")
+    def test_only_enabled_providers_are_collected(self, _which, codex, claude):
+        result = collect(skip_remote=True, enabled={"claude"})
+
+        self.assertEqual([item["provider"]["id"] for item in result["providers"]], ["claude"])
+        codex.assert_not_called()
+        claude.assert_called_once()
+
+    @patch("collector.all_providers.collect_claude")
+    @patch("collector.all_providers.collect_codex")
+    def test_an_explicit_empty_selection_collects_nothing(self, codex, claude):
+        result = collect(skip_remote=True, enabled=set())
+
+        self.assertEqual(result["providers"], [])
+        codex.assert_not_called()
+        claude.assert_not_called()

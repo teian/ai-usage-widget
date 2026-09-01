@@ -15,6 +15,7 @@ PlasmoidItem {
     property string errorText: ""
     property bool refreshing: false
     property int refreshNonce: 0
+    readonly property bool anyProviderEnabled: plasmoid.configuration.enableCodex || plasmoid.configuration.enableClaude
 
     function compactNumber(value) {
         const number = Number(value || 0)
@@ -33,11 +34,20 @@ PlasmoidItem {
     }
 
     function refresh() {
+        if (!anyProviderEnabled) {
+            providers = []
+            selectedIndex = 0
+            refreshing = false
+            errorText = i18n("Enable Codex or Claude Code in the widget settings.")
+            return
+        }
         refreshing = true
         errorText = ""
         refreshNonce++
         const configured = plasmoid.configuration.collectorCommand.trim()
-        const command = configured.indexOf("/") === -1 ? "$HOME/.local/bin/" + configured : configured
+        let command = configured.indexOf("/") === -1 ? "$HOME/.local/bin/" + configured : configured
+        if (plasmoid.configuration.enableCodex) command += " --provider codex"
+        if (plasmoid.configuration.enableClaude) command += " --provider claude"
         executable.connectSource(command + " #" + refreshNonce)
     }
 
@@ -70,9 +80,15 @@ PlasmoidItem {
             anchors.centerIn: parent
             spacing: 0
             BrandIcon {
-                visible: root.providers.length === 0
+                visible: root.providers.length === 0 && root.anyProviderEnabled
                 providerId: "codex"
                 iconSize: Kirigami.Units.iconSizes.smallMedium
+            }
+            Kirigami.Icon {
+                visible: !root.anyProviderEnabled
+                source: "configure"
+                Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+                Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
             }
             Repeater {
                 model: root.providers
@@ -111,6 +127,12 @@ PlasmoidItem {
         repeat: true
         running: true
         onTriggered: root.refresh()
+    }
+
+    Connections {
+        target: plasmoid.configuration
+        function onEnableCodexChanged() { root.refresh() }
+        function onEnableClaudeChanged() { root.refresh() }
     }
 
     Component.onCompleted: refresh()
