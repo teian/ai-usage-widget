@@ -239,7 +239,7 @@ PlasmaExtras.Representation {
                                 }
                                 PlasmaComponents.Label {
                                     Layout.fillWidth: true
-                                    text: view.resetLabel(modelData.resetsAt)
+                                    text: modelData.detail || view.resetLabel(modelData.resetsAt)
                                     color: Kirigami.Theme.disabledTextColor
                                     font: Kirigami.Theme.smallFont
                                     elide: Text.ElideRight

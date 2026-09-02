@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from collector.claude import scan_local_usage
+from collector.claude import parse_limits, scan_local_usage
 
 
 class ClaudeLocalUsageTests(unittest.TestCase):
@@ -48,3 +48,38 @@ class ClaudeLocalUsageTests(unittest.TestCase):
                 },
             },
         }
+
+
+class ClaudeLimitTests(unittest.TestCase):
+    def test_usage_credits_are_reported_after_plan_windows(self):
+        payload = {
+            "five_hour": {"utilization": 0.4, "resets_at": "2026-09-02T14:39:59+00:00"},
+            "seven_day": {"utilization": 0.1, "resets_at": "2026-09-08T06:59:59+00:00"},
+            "limits": [],
+            "spend": {
+                "used": {"amount_minor": 250, "currency": "GBP", "exponent": 2},
+                "limit": {"amount_minor": 1000, "currency": "GBP", "exponent": 2},
+                "percent": 25,
+                "enabled": True,
+            },
+        }
+
+        limits = parse_limits(payload)
+
+        self.assertEqual([limit["id"] for limit in limits], ["five_hour", "seven_day", "credits"])
+        credits = limits[-1]
+        self.assertEqual(credits["label"], "Credits")
+        self.assertEqual(credits["usedPercent"], 25.0)
+        self.assertEqual(credits["detail"], "\u00a32.50 of \u00a310.00")
+        self.assertIsNone(credits["windowMinutes"])
+        self.assertIsNone(credits["resetsAt"])
+
+    def test_disabled_credits_are_omitted(self):
+        payload = {"five_hour": {"utilization": 0.0}, "spend": {"enabled": False}, "extra_usage": {"is_enabled": True}}
+        self.assertEqual([limit["id"] for limit in parse_limits(payload)], ["five_hour"])
+
+    def test_extra_usage_block_is_a_fallback(self):
+        payload = {"extra_usage": {"is_enabled": True, "monthly_limit": 1000, "used_credits": 0.0, "currency": "GBP", "decimal_places": 2}}
+        credits = parse_limits(payload)[0]
+        self.assertEqual(credits["detail"], "\u00a30.00 of \u00a310.00")
+        self.assertEqual(credits["usedPercent"], 0.0)

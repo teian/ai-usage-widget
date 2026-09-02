@@ -204,6 +204,76 @@ def fetch_limits(access_token: str) -> list[dict[str, Any]]:
     )
     with urllib.request.urlopen(request, timeout=10) as response:
         payload = json.loads(response.read().decode("utf-8", errors="replace"))
+    return parse_limits(payload)
+
+
+CURRENCY_SYMBOLS = {"GBP": "\u00a3", "USD": "$", "EUR": "\u20ac", "JPY": "\u00a5"}
+
+
+def money(amount: Any, currency: str, decimals: int) -> str:
+    symbol = CURRENCY_SYMBOLS.get(currency)
+    figure = f"{float(amount):,.{decimals}f}"
+    return f"{symbol}{figure}" if symbol else f"{figure} {currency}".strip()
+
+
+def credit_limit(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Usage credits are a shared pay-as-you-go pool; Fable and any overflow past the plan windows bill here."""
+    spend = payload.get("spend") if isinstance(payload.get("spend"), dict) else None
+    extra = payload.get("extra_usage") if isinstance(payload.get("extra_usage"), dict) else None
+    if spend and spend.get("enabled") is not None:
+        enabled = bool(spend.get("enabled"))
+    elif extra:
+        enabled = bool(extra.get("is_enabled")) and not extra.get("user_disabled")
+    else:
+        return None
+    if not enabled:
+        return None
+
+    used = limit = None
+    currency = ""
+    decimals = 2
+    if spend:
+        used_block = spend.get("used") if isinstance(spend.get("used"), dict) else {}
+        limit_block = spend.get("limit") if isinstance(spend.get("limit"), dict) else {}
+        try:
+            decimals = int(used_block.get("exponent", limit_block.get("exponent", 2)))
+            if used_block.get("amount_minor") is not None:
+                used = int(used_block["amount_minor"]) / 10**decimals
+            if limit_block.get("amount_minor") is not None:
+                limit = int(limit_block["amount_minor"]) / 10**decimals
+        except (TypeError, ValueError):
+            used = limit = None
+        currency = str(used_block.get("currency") or limit_block.get("currency") or "")
+    if used is None and extra:
+        try:
+            decimals = int(extra.get("decimal_places", 2))
+            used = float(extra.get("used_credits") or 0)
+            limit = float(extra["monthly_limit"]) / 10**decimals if extra.get("monthly_limit") is not None else None
+        except (TypeError, ValueError):
+            used = None
+        currency = str(extra.get("currency") or currency)
+    if used is None:
+        return None
+
+    percent = used_percent((spend or {}).get("percent"), True)
+    if percent is None and limit:
+        percent = min(100.0, used / limit * 100)
+    if percent is None:
+        percent = 0.0
+    detail = money(used, currency, decimals)
+    if limit is not None:
+        detail = f"{detail} of {money(limit, currency, decimals)}"
+    return {
+        "id": "credits",
+        "label": "Credits",
+        "usedPercent": percent,
+        "windowMinutes": None,
+        "resetsAt": None,
+        "detail": detail,
+    }
+
+
+def parse_limits(payload: dict[str, Any]) -> list[dict[str, Any]]:
     session = payload.get("five_hour") if isinstance(payload.get("five_hour"), dict) else None
     weekly = payload.get("seven_day_oauth_apps") or payload.get("seven_day")
     weekly = weekly if isinstance(weekly, dict) else None
@@ -248,6 +318,9 @@ def fetch_limits(access_token: str) -> list[dict[str, Any]]:
             "windowMinutes": None,
             "resetsAt": reset_time(item.get("resets_at")),
         })
+    credits = credit_limit(payload)
+    if credits:
+        limits.append(credits)
     return limits
 
 

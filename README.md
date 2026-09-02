@@ -7,7 +7,8 @@ deliberately isolated so others can be added without changing the widget.
 ## What the prototype shows
 
 - Codex subscription usage windows and reset times via `codex app-server`
-- Claude Code subscription windows via its best-effort OAuth usage endpoint
+- Claude Code subscription windows and usage-credit spend (the pool Fable and
+  over-limit usage bill against) via its best-effort OAuth usage endpoint
 - Seven-day local token activity as a bar chart, with prompt and session counts
 - Token totals grouped by model
 - Account-level token activity when Codex makes it available
