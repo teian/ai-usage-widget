@@ -21,13 +21,20 @@ def collect(skip_remote: bool = False, history_days: int = 30, enabled: set[str]
         enabled = {"codex", "claude"}
     codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
     claude_home = Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
-    if "codex" in enabled and (shutil.which("codex") or codex_home.exists()):
+    available = {
+        "codex": bool(shutil.which("codex")),
+        "claude": bool(shutil.which("claude")),
+    }
+    # A leftover configuration directory is not proof that its CLI is still
+    # installed. Only include providers the user can actually run.
+    if "codex" in enabled and available["codex"]:
         providers.append(collect_codex(codex_home, skip_remote, history_days))
-    if "claude" in enabled and (shutil.which("claude") or claude_home.exists()):
+    if "claude" in enabled and available["claude"]:
         providers.append(collect_claude(claude_home, skip_remote, history_days))
     return {
         "schemaVersion": 1,
         "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "availableProviders": available,
         "providers": providers,
     }
 

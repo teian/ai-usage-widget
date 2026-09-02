@@ -7,6 +7,8 @@ Kirigami.FormLayout {
     property alias cfg_refreshMinutes: refresh.value
     property alias cfg_enableCodex: enableCodex.checked
     property alias cfg_enableClaude: enableClaude.checked
+    property alias cfg_codexDetected: codexDetected.value
+    property alias cfg_claudeDetected: claudeDetected.value
     property alias cfg_codexGaugeLimit: codexGaugeLimit.currentIndex
     property alias cfg_claudeGaugeLimit: claudeGaugeLimit.currentIndex
 
@@ -18,12 +20,22 @@ Kirigami.FormLayout {
 
     Controls.CheckBox {
         id: enableCodex
-        text: i18n("Codex")
+        text: codexDetected.value ? i18n("Codex") : i18n("Codex — not detected")
     }
 
     Controls.CheckBox {
         id: enableClaude
-        text: i18n("Claude Code")
+        text: claudeDetected.value ? i18n("Claude Code") : i18n("Claude Code — not detected")
+    }
+
+    QtObject {
+        id: codexDetected
+        property bool value: false
+    }
+
+    QtObject {
+        id: claudeDetected
+        property bool value: false
     }
 
     Kirigami.Heading {

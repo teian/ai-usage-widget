@@ -18,8 +18,6 @@ PlasmoidItem {
     property int refreshNonce: 0
     property string activeSource: ""
     readonly property bool anyProviderEnabled: plasmoid.configuration.enableCodex || plasmoid.configuration.enableClaude
-    readonly property string pendingProviderId: plasmoid.configuration.enableClaude && !plasmoid.configuration.enableCodex
-                                                ? "claude" : "codex"
     readonly property var gaugeLimitPreferences: ({
         codex: plasmoid.configuration.codexGaugeLimit,
         claude: plasmoid.configuration.claudeGaugeLimit
@@ -78,8 +76,15 @@ PlasmoidItem {
         try {
             const result = JSON.parse(data.stdout)
             providers = result.providers || [result]
+            if (result.availableProviders) {
+                plasmoid.configuration.codexDetected = !!result.availableProviders.codex
+                plasmoid.configuration.claudeDetected = !!result.availableProviders.claude
+            }
             lastUpdatedAt = result.updatedAt || (providers.length > 0 ? providers[0].updatedAt || "" : "")
             if (selectedIndex >= providers.length) selectedIndex = 0
+            if (providers.length === 0) {
+                errorText = i18n("No enabled AI command-line tools were found.")
+            }
         } catch (error) {
             errorText = i18n("The collector returned invalid data: %1", error.toString())
         }
@@ -101,27 +106,8 @@ PlasmoidItem {
             id: row
             anchors.centerIn: parent
             spacing: Kirigami.Units.smallSpacing
-            Item {
-                visible: root.providers.length === 0 && root.anyProviderEnabled
-                Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
-                Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
-
-                BrandIcon {
-                    anchors.centerIn: parent
-                    providerId: root.pendingProviderId
-                    iconSize: Kirigami.Units.iconSizes.smallMedium
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        root.expanded = true
-                        if (!root.refreshing) root.refresh()
-                    }
-                }
-            }
             Kirigami.Icon {
-                visible: !root.anyProviderEnabled
+                visible: !root.anyProviderEnabled || root.providers.length === 0
                 source: "configure"
                 Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                 Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
