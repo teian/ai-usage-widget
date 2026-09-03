@@ -4,7 +4,7 @@
     "Category": "System Information",
     "Description": "Monitor Codex and Claude Code usage limits and local token activity in Plasma.",
     "Icon": "utilities-terminal",
-    "Id": "com.github.dean.aiusage",
+    "Id": "com.github.d34ndev.aiusage",
     "Name": "AI Usage",
     "Version": "0.2.0",
     "Website": "https://github.com/d34ndev/ai-usage-widget",
