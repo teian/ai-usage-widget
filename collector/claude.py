@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 import time
 import urllib.error
@@ -20,6 +21,33 @@ from typing import Any, Iterable
 SCHEMA_VERSION = 1
 HISTORY_DAYS = 7
 USAGE_ENDPOINT = "https://api.anthropic.com/api/oauth/usage"
+
+
+def resolve_claude() -> str | None:
+    """Find Claude Code even when Plasma was started with a minimal PATH."""
+    configured = os.environ.get("CLAUDE_BIN", "").strip()
+    candidates: list[str | Path] = []
+    if configured:
+        candidates.append(configured)
+
+    on_path = shutil.which("claude")
+    if on_path:
+        candidates.append(on_path)
+
+    user_home = Path.home()
+    candidates.extend((
+        user_home / ".claude/local/claude",
+        user_home / ".local/bin/claude",
+        user_home / ".local/share/mise/shims/claude",
+        user_home / ".local/share/mise/installs/claude/latest/claude",
+        user_home / ".npm-global/bin/claude",
+    ))
+
+    for candidate in candidates:
+        path = Path(candidate).expanduser()
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+    return None
 
 
 def integer(value: Any) -> int:

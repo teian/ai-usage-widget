@@ -6,12 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from collector.claude import collect as collect_claude
+from collector.claude import collect as collect_claude, resolve_claude
 from collector.codex import collect as collect_codex, resolve_codex
 
 
@@ -23,7 +22,7 @@ def collect(skip_remote: bool = False, history_days: int = 30, enabled: set[str]
     claude_home = Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
     available = {
         "codex": bool(resolve_codex()),
-        "claude": bool(shutil.which("claude")),
+        "claude": bool(resolve_claude()),
     }
     # A leftover configuration directory is not proof that its CLI is still
     # installed. Only include providers the user can actually run.
