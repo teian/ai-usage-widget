@@ -79,9 +79,4 @@ Kirigami.FormLayout {
         valueFromText: (text) => parseInt(text)
     }
 
-    Kirigami.Heading {
-        text: i18n("Advanced")
-        level: 2
-        Kirigami.FormData.isSection: true
-    }
 }
