@@ -1,13 +1,15 @@
 {
   "KPlugin": {
-    "Authors": [{ "Name": "AI Usage contributors" }],
+    "Authors": [{ "Name": "Dean Perry" }],
     "Category": "System Information",
-    "Description": "Codex and Claude subscription limits and token activity",
+    "Description": "Monitor Codex and Claude Code usage limits and local token activity in Plasma.",
     "Icon": "utilities-terminal",
     "Id": "com.github.dean.aiusage",
     "Name": "AI Usage",
-    "Version": "0.1.0",
-    "Website": "https://github.com/"
+    "Version": "0.2.0",
+    "Website": "https://github.com/d34ndev/ai-usage-widget",
+    "BugReportUrl": "https://github.com/d34ndev/ai-usage-widget/issues",
+    "License": "MIT"
   },
   "KPackageStructure": "Plasma/Applet",
   "X-Plasma-API-Minimum-Version": "6.0"
