@@ -78,7 +78,7 @@ Codex and Claude Code independently, or to change the refresh interval.
 For development, run:
 
 ```sh
-plasmawindowed com.github.dean.aiusage
+plasmawindowed com.github.d34ndev.aiusage
 ```
 
 Uninstall with `./scripts/uninstall.sh`.

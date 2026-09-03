@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-kpackagetool6 --type Plasma/Applet --remove com.github.dean.aiusage || true
+kpackagetool6 --type Plasma/Applet --remove com.github.d34ndev.aiusage || true
 
 # Clean up leftovers from installs before the collector was bundled into the
 # plasmoid package itself.
