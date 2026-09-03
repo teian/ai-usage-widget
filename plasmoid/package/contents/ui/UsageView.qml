@@ -58,6 +58,11 @@ PlasmaExtras.Representation {
         return Qt.rgba(color.r, color.g, color.b, alpha)
     }
 
+    function planLabel(value) {
+        const text = String(value || "").trim()
+        return text ? text.charAt(0).toUpperCase() + text.slice(1) : ""
+    }
+
     function limitColor(percent) {
         if (percent >= 90) return Kirigami.Theme.negativeTextColor
         if (percent >= 75) return Kirigami.Theme.neutralTextColor
@@ -99,7 +104,7 @@ PlasmaExtras.Representation {
                     PlasmaExtras.Heading { text: view.record ? view.record.provider.name : i18n("AI Usage"); level: 2 }
                     PlasmaComponents.Label {
                         readonly property string planText: view.record && view.record.account.plan
-                            ? i18n("%1 plan", view.record.account.plan) : ""
+                            ? i18n("%1 plan", view.planLabel(view.record.account.plan)) : ""
                         readonly property string updateText: view.updatedLabel(view.lastUpdatedAt)
                         text: planText && updateText ? i18n("%1 · %2", planText, updateText)
                             : planText || updateText || i18n("Local activity")
