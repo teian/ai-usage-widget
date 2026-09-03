@@ -7,8 +7,9 @@ from collector.all_providers import collect
 class ProviderSelectionTests(unittest.TestCase):
     @patch("collector.all_providers.collect_claude", return_value={"provider": {"id": "claude"}})
     @patch("collector.all_providers.collect_codex", return_value={"provider": {"id": "codex"}})
+    @patch("collector.all_providers.resolve_codex", return_value="/usr/bin/codex")
     @patch("collector.all_providers.shutil.which", return_value="/usr/bin/provider")
-    def test_only_enabled_providers_are_collected(self, _which, codex, claude):
+    def test_only_enabled_providers_are_collected(self, _which, _resolve_codex, codex, claude):
         result = collect(skip_remote=True, enabled={"claude"})
 
         self.assertEqual([item["provider"]["id"] for item in result["providers"]], ["claude"])
@@ -27,8 +28,9 @@ class ProviderSelectionTests(unittest.TestCase):
 
     @patch("collector.all_providers.collect_claude")
     @patch("collector.all_providers.collect_codex")
+    @patch("collector.all_providers.resolve_codex", return_value=None)
     @patch("collector.all_providers.shutil.which", return_value=None)
-    def test_saved_provider_data_does_not_make_an_uninstalled_cli_visible(self, _which, codex, claude):
+    def test_saved_provider_data_does_not_make_an_uninstalled_cli_visible(self, _which, _resolve_codex, codex, claude):
         result = collect(skip_remote=True, enabled={"codex", "claude"})
 
         self.assertEqual(result["providers"], [])

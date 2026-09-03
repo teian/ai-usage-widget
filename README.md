@@ -48,6 +48,10 @@ appear immediately:
 kquitapp6 plasmashell && kstart plasmashell
 ```
 
+The collector locates Codex from the desktop session `PATH` and common per-user
+install locations. If Codex is installed somewhere unusual, set `CODEX_BIN` to
+its absolute path before starting Plasma.
+
 Right-click the widget and open **Configure AI Usage…** to enable or disable
 Codex and Claude Code independently, or to change the refresh interval.
 

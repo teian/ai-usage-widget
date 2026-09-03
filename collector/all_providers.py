@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from collector.claude import collect as collect_claude
-from collector.codex import collect as collect_codex
+from collector.codex import collect as collect_codex, resolve_codex
 
 
 def collect(skip_remote: bool = False, history_days: int = 30, enabled: set[str] | None = None) -> dict:
@@ -22,7 +22,7 @@ def collect(skip_remote: bool = False, history_days: int = 30, enabled: set[str]
     codex_home = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
     claude_home = Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
     available = {
-        "codex": bool(shutil.which("codex")),
+        "codex": bool(resolve_codex()),
         "claude": bool(shutil.which("claude")),
     }
     # A leftover configuration directory is not proof that its CLI is still

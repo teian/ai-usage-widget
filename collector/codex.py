@@ -22,6 +22,32 @@ SCHEMA_VERSION = 1
 HISTORY_DAYS = 7
 
 
+def resolve_codex() -> str | None:
+    """Find Codex even when Plasma was started with a minimal PATH."""
+    configured = os.environ.get("CODEX_BIN", "").strip()
+    candidates: list[str | Path] = []
+    if configured:
+        candidates.append(configured)
+
+    on_path = shutil.which("codex")
+    if on_path:
+        candidates.append(on_path)
+
+    user_home = Path.home()
+    candidates.extend((
+        user_home / ".local/bin/codex",
+        user_home / ".local/share/mise/shims/codex",
+        user_home / ".local/share/mise/installs/codex/latest/bin/codex",
+        user_home / ".npm-global/bin/codex",
+    ))
+
+    for candidate in candidates:
+        path = Path(candidate).expanduser()
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+    return None
+
+
 def integer(value: Any) -> int:
     try:
         return max(0, int(value or 0))
@@ -259,7 +285,7 @@ def normalize_limit(limit: dict[str, Any], bucket_name: str, window_name: str) -
 
 
 def fetch_account_usage() -> dict[str, Any]:
-    codex = shutil.which("codex")
+    codex = resolve_codex()
     if not codex:
         return {"status": "unavailable", "message": "The codex command was not found.", "limits": []}
     proc = subprocess.Popen(
