@@ -6,7 +6,7 @@
     "Icon": "utilities-terminal",
     "Id": "com.github.d34ndev.aiusage",
     "Name": "AI Usage",
-    "Version": "0.2.0",
+    "Version": "0.2.1",
     "Website": "https://github.com/d34ndev/ai-usage-widget",
     "BugReportUrl": "https://github.com/d34ndev/ai-usage-widget/issues",
     "License": "MIT"
