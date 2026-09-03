@@ -8,9 +8,10 @@ Install **AI Usage** from the [KDE Store](https://store.kde.org/p/2370275/).
 
 ## Screenshots
 
-![Codex usage view](docs/codex-usage.png)
-
-![Claude Code usage view](docs/claude-usage.png)
+<p>
+  <img src="docs/codex-usage.png" alt="Codex usage view" width="320">
+  <img src="docs/claude-usage.png" alt="Claude Code usage view" width="320">
+</p>
 
 ## Features
 
