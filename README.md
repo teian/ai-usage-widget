@@ -4,6 +4,8 @@ A Plasma 6 widget for monitoring AI coding-agent usage. It shows subscription
 allowances, reset times, local token activity, and model totals for Codex and
 Claude Code.
 
+Install **AI Usage** from the [KDE Store](https://store.kde.org/p/2370275/).
+
 ## Screenshots
 
 ![Codex usage view](docs/codex-usage.png)
@@ -45,6 +47,8 @@ OAuth token solely to request subscription limits from Anthropic; it never
 prints or stores that token. Local Claude statistics work without that request.
 
 ## Install for the current user
+
+To install the latest local checkout instead, run:
 
 ```sh
 ./scripts/install.sh
