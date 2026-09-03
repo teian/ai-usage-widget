@@ -36,7 +36,7 @@ prints or stores that token. Local Claude statistics work without that request.
 ./scripts/install.sh
 ```
 
-This bundles `collector/` and the `bin/` launchers into the plasmoid package
+This bundles `collector/` and the collector launcher into the plasmoid package
 itself before installing it with `kpackagetool6`, so the widget is
 self-contained - nothing is installed outside its own applet directory, and
 `./scripts/uninstall.sh` removes it in one step.
@@ -66,8 +66,7 @@ Uninstall with `./scripts/uninstall.sh`.
 ## Layout
 
 ```text
-bin/ai-usage             all-provider collector
-bin/ai-usage-{provider}  individual provider collectors
+bin/ai-usage             bundled all-provider collector launcher
 collector/               collection and normalization logic
 plasmoid/package/        Plasma 6 package (install.sh bundles bin/ and collector/ into contents/)
 schemas/                 provider record contract

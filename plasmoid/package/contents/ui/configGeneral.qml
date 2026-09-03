@@ -3,7 +3,6 @@ import QtQuick.Controls as Controls
 import org.kde.kirigami as Kirigami
 
 Kirigami.FormLayout {
-    property alias cfg_collectorCommand: collector.text
     property alias cfg_refreshMinutes: refresh.value
     property alias cfg_enableCodex: enableCodex.checked
     property alias cfg_enableClaude: enableClaude.checked
@@ -68,11 +67,6 @@ Kirigami.FormLayout {
         text: i18n("Updates")
         level: 2
         Kirigami.FormData.isSection: true
-    }
-
-    Controls.TextField {
-        id: collector
-        Kirigami.FormData.label: i18n("Collector command:")
     }
 
     Controls.SpinBox {

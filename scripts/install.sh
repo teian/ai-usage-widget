@@ -11,9 +11,7 @@ rm -rf "$package_dir/contents/collector" "$package_dir/contents/bin"
 cp -R "$project_dir/collector" "$package_dir/contents/collector"
 find "$package_dir/contents/collector" -name '__pycache__' -type d -prune -exec rm -rf {} +
 mkdir -p "$package_dir/contents/bin"
-for command in ai-usage ai-usage-codex ai-usage-claude; do
-  install -m 755 "$project_dir/bin/$command" "$package_dir/contents/bin/$command"
-done
+install -m 755 "$project_dir/bin/ai-usage" "$package_dir/contents/bin/ai-usage"
 
 kpackagetool6 --type Plasma/Applet --upgrade "$package_dir" 2>/dev/null || \
   kpackagetool6 --type Plasma/Applet --install "$package_dir"
