@@ -4,18 +4,26 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import suppress
+import hashlib
 import json
 import os
-import select
+import queue
 import shutil
+import signal
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+from collector.common import (account_cache_path, backoff_seconds, cache_lock,
+                              finite_number, local_date, read_cache, write_cache)
 
 
 SCHEMA_VERSION = 1
@@ -51,21 +59,8 @@ def resolve_codex() -> str | None:
 def integer(value: Any) -> int:
     try:
         return max(0, int(value or 0))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
-
-
-def local_date(value: Any, fallback_mtime: float) -> str:
-    if isinstance(value, (int, float)):
-        stamp = float(value) / 1000 if value > 10_000_000_000 else float(value)
-        return datetime.fromtimestamp(stamp).astimezone().date().isoformat()
-    if value:
-        try:
-            text = str(value).replace("Z", "+00:00")
-            return datetime.fromisoformat(text).astimezone().date().isoformat()
-        except ValueError:
-            pass
-    return datetime.fromtimestamp(fallback_mtime).astimezone().date().isoformat()
 
 
 @dataclass(frozen=True)
@@ -153,13 +148,19 @@ def scan_local_usage(codex_home: Path, history_days: int = 30) -> dict[str, Any]
                         event = json.loads(line)
                     except (json.JSONDecodeError, TypeError):
                         continue
-                    payload = event.get("payload") or {}
+                    if not isinstance(event, dict):
+                        continue
+                    payload = event.get("payload")
+                    if not isinstance(payload, dict):
+                        continue
                     if event.get("type") == "turn_context":
                         model = str(payload.get("model") or payload.get("model_slug") or model)
                         continue
                     if payload.get("type") != "token_count":
                         continue
-                    info = payload.get("info") or {}
+                    info = payload.get("info")
+                    if not isinstance(info, dict):
+                        continue
                     cumulative_raw = info.get("total_token_usage")
                     last_raw = info.get("last_token_usage")
                     if isinstance(cumulative_raw, dict):
@@ -202,7 +203,7 @@ def scan_local_usage(codex_home: Path, history_days: int = 30) -> dict[str, Any]
         })
     return {
         "scope": "machine",
-        "historyDays": history_days,
+        "historyDays": HISTORY_DAYS,
         "totals": {
             **{key: totals.get(key, 0) for key in Tokens().as_dict()},
             "prompts": prompts,
@@ -220,6 +221,27 @@ class RpcError(RuntimeError):
     pass
 
 
+class RpcReader:
+    """Read complete frames off-thread so partial lines cannot defeat a deadline.
+
+    select() on a TextIOWrapper misses lines already in Python's buffer. A
+    reader queue also handles responses coalesced with unsolicited notifications.
+    """
+
+    def __init__(self, proc: subprocess.Popen[str]):
+        self.messages: queue.Queue[str | None] = queue.Queue()
+        self.thread = threading.Thread(target=self._read, args=(proc,), daemon=True)
+        self.thread.start()
+
+    def _read(self, proc: subprocess.Popen[str]) -> None:
+        assert proc.stdout is not None
+        try:
+            for line in proc.stdout:
+                self.messages.put(line)
+        finally:
+            self.messages.put(None)
+
+
 def rpc_request(
     proc: subprocess.Popen[str],
     request_id: int,
@@ -228,40 +250,48 @@ def rpc_request(
     timeout: float = 6,
 ) -> dict[str, Any]:
     assert proc.stdin is not None and proc.stdout is not None
+    reader = getattr(proc, "_rpc_reader", None)
+    if reader is None:
+        reader = RpcReader(proc)
+        proc._rpc_reader = reader
     proc.stdin.write(json.dumps({"id": request_id, "method": method, "params": params or {}}) + "\n")
     proc.stdin.flush()
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if proc.poll() is not None:
-            detail = ""
-            if proc.stderr is not None:
-                detail = proc.stderr.read(2048).strip()
-            raise RpcError(detail or f"Codex app-server exited with status {proc.returncode}")
-        ready, _, _ = select.select([proc.stdout], [], [], min(0.25, deadline - time.monotonic()))
-        if not ready:
-            continue
-        line = proc.stdout.readline()
-        if not line:
-            continue
+        try:
+            line = reader.messages.get(timeout=max(0, deadline - time.monotonic()))
+        except queue.Empty:
+            break
+        if line is None:
+            raise RpcError("Codex app-server closed its output before replying.")
         try:
             message = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if message.get("id") == request_id:
+        if isinstance(message, dict) and message.get("id") == request_id:
             if message.get("error"):
                 raise RpcError(f"{method}: {message['error']}")
-            return message.get("result") or {}
+            result = message.get("result")
+            if not isinstance(result, dict):
+                raise RpcError(f"{method}: invalid response")
+            return result
     raise RpcError(f"{method} timed out after {timeout:g}s")
 
 
 def iso_reset(timestamp: Any) -> str | None:
     value = integer(timestamp)
-    return datetime.fromtimestamp(value, timezone.utc).isoformat() if value else None
+    try:
+        return datetime.fromtimestamp(value, timezone.utc).isoformat() if value else None
+    except (ValueError, OverflowError, OSError):
+        return None
 
 
 def normalize_limit(limit: dict[str, Any], bucket_name: str, window_name: str) -> dict[str, Any] | None:
     window = limit.get(window_name)
-    if not isinstance(window, dict) or window.get("usedPercent") is None:
+    if not isinstance(window, dict):
+        return None
+    percent = finite_number(window.get("usedPercent"))
+    if percent is None or percent < 0:
         return None
     minutes = integer(window.get("windowDurationMins"))
     if minutes == 10080:
@@ -278,7 +308,7 @@ def normalize_limit(limit: dict[str, Any], bucket_name: str, window_name: str) -
     return {
         "id": f"{bucket_name}:{window_name}",
         "label": label,
-        "usedPercent": float(window["usedPercent"]),
+        "usedPercent": percent,
         "windowMinutes": minutes or None,
         "resetsAt": iso_reset(window.get("resetsAt")),
     }
@@ -288,16 +318,14 @@ def fetch_account_usage() -> dict[str, Any]:
     codex = resolve_codex()
     if not codex:
         return {"status": "unavailable", "message": "The codex command was not found.", "limits": []}
-    proc = subprocess.Popen(
-        [codex, "app-server"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    proc = None
+    # stderr must be drained too: a full diagnostic pipe can stall the server.
+    diagnostics = tempfile.TemporaryFile()
     try:
+        proc = subprocess.Popen(
+            [codex, "app-server"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=diagnostics, text=True, encoding="utf-8", errors="replace", start_new_session=True,
+        )
         initialized = rpc_request(
             proc,
             1,
@@ -308,17 +336,22 @@ def fetch_account_usage() -> dict[str, Any]:
         assert proc.stdin is not None
         proc.stdin.write(json.dumps({"method": "initialized", "params": {}}) + "\n")
         proc.stdin.flush()
-        account_result = rpc_request(proc, 2, "account/read", timeout=5)
-        limits_result = rpc_request(proc, 3, "account/rateLimits/read", timeout=5)
+        account_result = rpc_request(proc, 2, "account/read", {"refreshToken": True}, timeout=15)
+        account = account_result.get("account")
+        if not isinstance(account, dict):
+            return {"status": "unavailable", "message": "Sign in to Codex to see subscription limits.", "limits": []}
+        if account.get("type") == "apiKey":
+            return {"status": "unavailable", "message": "Codex uses an API key; subscription limits require a ChatGPT login.", "authType": "apiKey", "limits": []}
+        limits_result = rpc_request(proc, 3, "account/rateLimits/read", timeout=15)
         try:
             activity_result = rpc_request(proc, 4, "account/usage/read", timeout=5)
         except RpcError:
             activity_result = {}
 
-        account = account_result.get("account") or {}
+        primary_bucket = limits_result.get("rateLimits")
+        primary_bucket = primary_bucket if isinstance(primary_bucket, dict) else {}
         buckets = limits_result.get("rateLimitsByLimitId")
         if not isinstance(buckets, dict) or not buckets:
-            primary_bucket = limits_result.get("rateLimits") or {}
             buckets = {str(primary_bucket.get("limitId") or "codex"): primary_bucket}
         limits = []
         for bucket_name, bucket in buckets.items():
@@ -329,9 +362,9 @@ def fetch_account_usage() -> dict[str, Any]:
                 if normalized:
                     limits.append(normalized)
         return {
-            "status": "ok",
-            "message": "",
-            "plan": account.get("planType") or (limits_result.get("rateLimits") or {}).get("planType"),
+            "status": "ok" if limits else "unavailable",
+            "message": "" if limits else "Codex returned no subscription usage windows.",
+            "plan": account.get("planType") or primary_bucket.get("planType"),
             "authType": account.get("type"),
             "limits": limits,
             "accountActivity": {
@@ -344,12 +377,79 @@ def fetch_account_usage() -> dict[str, Any]:
     except (OSError, RpcError) as exc:
         return {"status": "error", "message": str(exc), "limits": []}
     finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=1)
+        if proc is not None:
+            # npm launchers can spawn a native app-server child. Stop the
+            # whole private process group so its pipes do not remain open.
+            with suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGTERM)
+            if proc.poll() is None:
+                try:
+                    proc.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    with suppress(ProcessLookupError):
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    proc.wait()
+            reader = getattr(proc, "_rpc_reader", None)
+            if reader is not None:
+                reader.thread.join(timeout=1)
+            if proc.stdin is not None:
+                with suppress(OSError):
+                    proc.stdin.close()
+            if proc.stdout is not None:
+                proc.stdout.close()
+        diagnostics.close()
+
+
+def auth_cache_identity(codex_home: Path) -> str:
+    """Use stable account metadata; the app-server rotates tokens on reads."""
+    try:
+        data = json.loads((codex_home / "auth.json").read_text())
+        if not isinstance(data, dict):
+            return "no-saved-auth"
+        tokens = data.get("tokens") if isinstance(data.get("tokens"), dict) else {}
+        return hashlib.sha256(json.dumps([
+            data.get("auth_mode"), tokens.get("account_id"), data.get("OPENAI_API_KEY")
+        ], sort_keys=True).encode()).hexdigest()
+    except (OSError, ValueError):
+        return "no-saved-auth"
+
+
+def cached_account_usage(codex_home: Path) -> dict[str, Any]:
+    """Throttle account RPCs; their upstream HTTP headers are not exposed.
+
+    Do not confuse the ChatGPT allowance's resetsAt with an HTTP request-rate
+    reset. A full subscription window does not prohibit reading its status.
+    """
+    path = account_cache_path(codex_home, "codex")
+    identity = auth_cache_identity(codex_home)
+    base = {"status": "error", "message": "Codex account lookup is cooling down.", "limits": []}
+    try:
+        with cache_lock(path):
+            cache = read_cache(path, identity)
+            saved = cache.get("account") if isinstance(cache.get("account"), dict) else {}
+            now = time.time()
+            if (finite_number(cache.get("retryAt")) or 0) > now:
+                return {**base, **saved, "status": "error", "message": cache.get("message") or base["message"]}
+            if (finite_number(cache.get("nextRequestAt")) or 0) > now:
+                return saved or base
+            if not write_cache(path, {**cache, "nextRequestAt": now + 300}, identity):
+                return {**base, **saved, "status": "error", "message": "Cannot save Codex's request schedule; account lookup deferred."}
+            result = fetch_account_usage()
+            completed = time.time()
+            if result["status"] == "ok":
+                write_cache(path, {"account": result, "fetchedAt": completed, "nextRequestAt": completed + 300}, identity)
+                return result
+            message = result.get("message") or base["message"]
+            if saved:
+                message += " Showing the last successful limits."
+            failures = integer(cache.get("failureCount")) + 1
+            retry_at = completed + backoff_seconds(failures, 300)
+            write_cache(path, {"account": saved, "fetchedAt": cache.get("fetchedAt", 0), "nextRequestAt": retry_at, "retryAt": retry_at, "message": message, "failureCount": failures}, identity)
+            return {**saved, **result, "limits": saved.get("limits", result["limits"]), "message": message}
+    except OSError:
+        cache = read_cache(path, identity)
+        saved = cache.get("account") if isinstance(cache.get("account"), dict) else {}
+        return {**base, **saved, "status": "error", "message": "Codex lookup is busy or its request cache is unavailable. Retrying on the next refresh."}
 
 
 def collect(codex_home: Path, skip_remote: bool = False, history_days: int = 30) -> dict[str, Any]:
@@ -357,7 +457,7 @@ def collect(codex_home: Path, skip_remote: bool = False, history_days: int = 30)
     account = (
         {"status": "skipped", "message": "Account lookup skipped.", "limits": []}
         if skip_remote
-        else fetch_account_usage()
+        else cached_account_usage(codex_home)
     )
     return {
         "schemaVersion": SCHEMA_VERSION,

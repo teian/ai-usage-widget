@@ -28,7 +28,7 @@ Install **AI Usage** from the [KDE Store](https://store.kde.org/p/2370275/).
 - Codex CLI and/or Claude Code, installed and authenticated
 
 The providers are optional: enable only the tools you use. The collector uses
-only Python's standard library and stores no credentials.
+only Python's standard library and uses the CLIs' existing credentials.
 
 Local statistics are calculated from Codex session records under `CODEX_HOME`
 (normally `~/.codex`) and Claude Code transcripts under `CLAUDE_CONFIG_DIR`
@@ -44,8 +44,36 @@ come from each provider's service.
 
 The collectors use only the Python standard library. Codex authentication stays
 inside `codex app-server`. The Claude collector reads the existing Claude Code
-OAuth token solely to request subscription limits from Anthropic; it never
-prints or stores that token. Local Claude statistics work without that request.
+OAuth login to request subscription limits from Anthropic. Expired access
+tokens are refreshed using the saved refresh token; rotated credentials are
+written atomically back to Claude Code's credential file with owner-only
+permissions, while cooperating with Claude Code's refresh locks. Tokens are
+never printed or included in widget output. Local Claude statistics work
+without account lookup.
+
+Account lookups for both providers are cached for at least five minutes under
+`$XDG_CACHE_HOME/ai-usage` (normally `~/.cache/ai-usage`). This minimum applies
+to manual refreshes too; local token statistics still update on every refresh.
+Concurrent widget instances share a request lock and schedule.
+
+Claude HTTP responses are checked for `Retry-After` (seconds or an HTTP date)
+and exhausted `anthropic-ratelimit-*-remaining` buckets with their reset times,
+including successful responses and credential refreshes. The latest applicable
+deadline wins and is never shortened by a configured refresh interval or a
+token change. Failed requests use increasing backoff with jitter and retain the
+last successful limits with a warning. Codex is accessed through its app-server
+RPC interface, which does not expose upstream HTTP headers; the collector uses
+the same minimum polling interval and failure backoff rather than interpreting
+subscription reset times as HTTP request limits.
+
+These rules follow [Anthropic's response-header guidance](https://platform.claude.com/docs/en/api/rate-limits#response-headers),
+[OpenAI's rate-limit guidance](https://developers.openai.com/api/docs/guides/rate-limits),
+and [HTTP Retry-After semantics](https://www.rfc-editor.org/rfc/rfc9110.html#field.retry-after).
+The Claude OAuth usage endpoint has no published polling quota in those API
+docs; the five-minute minimum is a conservative widget policy, not a claimed
+provider limit. If a saved login can no longer be refreshed, run
+`claude auth login` and refresh the widget. The cache contains usage information,
+not credentials.
 
 ## Install for the current user
 

@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from collector.claude import parse_limits, scan_local_usage
@@ -35,7 +36,7 @@ class ClaudeLocalUsageTests(unittest.TestCase):
             "type": "assistant",
             "uuid": event_id,
             "sessionId": "session-1",
-            "timestamp": "2026-09-01T12:00:00Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "message": {
                 "id": message_id,
                 "role": "assistant",

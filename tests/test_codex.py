@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from collector.codex import scan_local_usage
@@ -39,7 +40,7 @@ class LocalUsageTests(unittest.TestCase):
             "output_tokens": output_tokens,
         }
         return {
-            "timestamp": "2026-09-01T12:00:00Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "type": "event_msg",
             "payload": {"type": "token_count", "info": {"total_token_usage": usage}},
         }

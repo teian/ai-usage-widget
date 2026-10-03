@@ -26,10 +26,25 @@ def collect(skip_remote: bool = False, history_days: int = 30, enabled: set[str]
     }
     # A leftover configuration directory is not proof that its CLI is still
     # installed. Only include providers the user can actually run.
-    if "codex" in enabled and available["codex"]:
-        providers.append(collect_codex(codex_home, skip_remote, history_days))
-    if "claude" in enabled and available["claude"]:
-        providers.append(collect_claude(claude_home, skip_remote, history_days))
+    for provider, name, home, collector in (
+        ("codex", "Codex", codex_home, collect_codex),
+        ("claude", "Claude Code", claude_home, collect_claude),
+    ):
+        if provider not in enabled or not available[provider]:
+            continue
+        try:
+            providers.append(collector(home, skip_remote, history_days))
+        except Exception as exc:
+            # A provider failure must not invalidate the other provider's JSON
+            # or make the entire applet refresh fail.
+            print(f"{provider} collection failed: {type(exc).__name__}", file=sys.stderr)
+            providers.append({
+                "schemaVersion": 1,
+                "provider": {"id": provider, "name": name},
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+                "account": {"status": "error", "message": f"{name} collection failed ({type(exc).__name__}).", "limits": []},
+                "localActivity": {"scope": "machine", "totals": {"inputTokens": 0, "cachedInputTokens": 0, "cacheWriteInputTokens": 0, "outputTokens": 0, "totalTokens": 0, "prompts": 0, "sessions": 0}, "daily": [], "models": []},
+            })
     return {
         "schemaVersion": 1,
         "updatedAt": datetime.now(timezone.utc).isoformat(),
